@@ -10,6 +10,7 @@ Funktionen:
 ******************************************************************************
 Aenderungen:
 2021-11-08 - Anlegen dieses Projektes
+2021-11-23 - Hinzufügen der Funktionalitäten "umdrehen" und "stoppen"
 
 *****************************************************************************/
 /******************* Text im Quelltext einbinden *********************/
@@ -38,7 +39,6 @@ void main()
 	int bit_index = 0;
 	int port = 1;
 	char stop = 0x00;
-	int counter = 0;
 	
 	char buttonStatus = 0x00;
 	
@@ -56,21 +56,12 @@ void main()
 		}
 		else
 		{ }
-		
-		// Counter
-		if (counter >= 10000)
-		{
-			counter = 0;
-		}
-		else
-		{
-			counter++;
-		}
 	}
 }
 
 void readButton(int* direction, char* stop, int* bit_index, int* max_bit_nr, char* buttonStatus)
 {
+	char button2 = *buttonStatus & 0x02;
 	// Port 5 wird abgefragt
 	if ((P5 & 0x01) == 0x00 && (*buttonStatus & 0x01) == 0x00)
 	{
@@ -80,11 +71,10 @@ void readButton(int* direction, char* stop, int* bit_index, int* max_bit_nr, cha
 	}
 	else if ((P5 & 0x01) == 0x01 && (*buttonStatus & 0x01) == 0x01)
 	{
-		*buttonStatus = *buttonStatus & 0x0FF;
+		*buttonStatus = *buttonStatus & 0x0FE;
 	}
-	
 	// Port 6 wird abgefragt
-	if ((P6 & 0x01) == 0x00 && (*buttonStatus & 0x02) == 0x00)
+	if ((P6 & 0x01) == 0x00 &&  button2 == 0x00)
 	{
 		*buttonStatus = *buttonStatus | 0x02;
 		
@@ -97,11 +87,11 @@ void readButton(int* direction, char* stop, int* bit_index, int* max_bit_nr, cha
 			*stop = 0x01;
 		}
 	}
-	else if ((P6 & 0x01) == 0x01 && (*buttonStatus & 0x02) == 0x01)
+	else if ((P6 & 0x01) == 0x01 && button2 == 0x02)
 	{
-		*buttonStatus = *buttonStatus & 0x0FE;
+		*buttonStatus = *buttonStatus & 0x0FD;
 	}
-	delay(5);
+	delay(50);
 }
 
 void flipDirection(int* direction, int* bit_index, int* max_bit_nr)
@@ -115,7 +105,7 @@ void flipDirection(int* direction, int* bit_index, int* max_bit_nr)
 		*direction = 0x01;
 	}
 	
-	*bit_index = *max_bit_nr - *bit_index;
+	*bit_index = (*max_bit_nr - *bit_index) + 1;
 }
 
 void LEDRunner(int* max_bit_nr, int* direction, int* bit_index, int* port)
@@ -147,7 +137,7 @@ void LEDRunner(int* max_bit_nr, int* direction, int* bit_index, int* port)
 			else
 			{
 				*port = 1;
-				index = (*bit_index - *max_bit_nr) - 1;
+				index = *bit_index - *max_bit_nr;
 			}
 		}
 		// switch LED's
@@ -203,7 +193,7 @@ void delay(int ms)
  int index1 = 0;
  int index2 = 0;
 
-	for (; index1 <= (ms * 2); index1++)
+	for (index1 = 0; index1 <= (ms * 2); index1++)
 	{
 		for (index2 = 0; index2 <= 1000; index2++)
 		{ }
