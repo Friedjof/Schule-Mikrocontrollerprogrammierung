@@ -1,0 +1,264 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              11/17/2021 12:27:36 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c ROM(SMALL) OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          /*****************************************************************************
+   2          h e i n r i c h -h e r t z -b e r u f s k o l l e g  d e r  s t a d t  b o n n
+   3          Autor:      Friedjof Noweck
+   4          Klasse:     IH119
+   5          Datum:      
+   6          Datei:      
+   7          Einsatz:    
+   8          Beschreibung: 
+   9          Funktionen:   
+  10          ******************************************************************************
+  11          Aenderungen:
+  12          2021-11-08 - Anlegen dieses Projektes
+  13          
+  14          *****************************************************************************/
+  15          /******************* Text im Quelltext einbinden *********************/
+  16          #include "REG517A.h"
+  17          
+  18          /*************************** Konstanten ******************************/
+  19          
+  20          
+  21          /*********************** globale Variablen ***************************/
+  22          
+  23          
+  24          /************************** Prototypen *******************************/
+  25          void readButton(int* direction, char* stop, int* bit_index, int* max_bit_nr, char* buttonStatus);
+  26          void LEDRunner(int* max_bit_nr, int* direction, int* bit_index, int* port);
+  27          void flipDirection(int* direction, int* bit_index, int* max_bit_nr);
+  28          void delay(int ms);
+  29          void port_controller(int port, int *port_nr);
+  30          int potenzieren(int basis, int potenz);
+  31          
+  32          /************************ Hauptprogramm ******************************/
+  33          
+  34          void main()
+  35          {
+  36   1        const int max_bit_nr = 15;
+  37   1        int direction = 1;
+  38   1        int bit_index = 0;
+  39   1        int port = 1;
+  40   1        char stop = 0x00;
+  41   1        int counter = 0;
+  42   1        
+  43   1        char buttonStatus = 0x00;
+  44   1        
+  45   1        // Set ports to zero
+  46   1        P1 = 0x00;
+  47   1        P4 = 0x00;
+  48   1        
+  49   1        while (1)
+  50   1        {
+  51   2          readButton(&direction, &stop, &bit_index, &max_bit_nr, &buttonStatus);
+  52   2          
+  53   2          if (stop == 0x00)
+  54   2          {
+  55   3            LEDRunner(&max_bit_nr, &direction, &bit_index, &port);
+C51 COMPILER V9.60.0.0   MAIN                                                              11/17/2021 12:27:36 PAGE 2   
+
+  56   3          }
+  57   2          else
+  58   2          { }
+  59   2          
+  60   2          // Counter
+  61   2          if (counter >= 10000)
+  62   2          {
+  63   3            counter = 0;
+  64   3          }
+  65   2          else
+  66   2          {
+  67   3            counter++;
+  68   3          }
+  69   2        }
+  70   1      }
+  71          
+  72          void readButton(int* direction, char* stop, int* bit_index, int* max_bit_nr, char* buttonStatus)
+  73          {
+  74   1        // Port 5 wird abgefragt
+  75   1        if ((P5 & 0x01) == 0x00 && (*buttonStatus & 0x01) == 0x00)
+  76   1        {
+  77   2          *buttonStatus = *buttonStatus | 0x01;
+  78   2          
+  79   2          flipDirection(direction, bit_index, max_bit_nr);
+  80   2        }
+  81   1        else if ((P5 & 0x01) == 0x01 && (*buttonStatus & 0x01) == 0x01)
+  82   1        {
+  83   2          *buttonStatus = *buttonStatus & 0x0FF;
+  84   2        }
+  85   1        
+  86   1        // Port 6 wird abgefragt
+  87   1        if ((P6 & 0x01) == 0x00 && (*buttonStatus & 0x02) == 0x00)
+  88   1        {
+  89   2          *buttonStatus = *buttonStatus | 0x02;
+  90   2          
+  91   2          if (*stop == 1)
+  92   2          {
+  93   3            *stop = 0x00;
+  94   3          }
+  95   2          else
+  96   2          {
+  97   3            *stop = 0x01;
+  98   3          }
+  99   2        }
+ 100   1        else if ((P6 & 0x01) == 0x01 && (*buttonStatus & 0x02) == 0x01)
+ 101   1        {
+ 102   2          *buttonStatus = *buttonStatus & 0x0FE;
+ 103   2        }
+ 104   1        delay(5);
+ 105   1      }
+ 106          
+ 107          void flipDirection(int* direction, int* bit_index, int* max_bit_nr)
+ 108          {
+ 109   1        if (*direction == 0x01)
+ 110   1        {
+ 111   2          *direction = 0x00;
+ 112   2        }
+ 113   1        else
+ 114   1        {
+ 115   2          *direction = 0x01;
+ 116   2        }
+ 117   1        
+C51 COMPILER V9.60.0.0   MAIN                                                              11/17/2021 12:27:36 PAGE 3   
+
+ 118   1        *bit_index = *max_bit_nr - *bit_index;
+ 119   1      }
+ 120          
+ 121          void LEDRunner(int* max_bit_nr, int* direction, int* bit_index, int* port)
+ 122          {
+ 123   1        int index = 0;
+ 124   1        
+ 125   1        if (*bit_index <= *max_bit_nr)
+ 126   1        {
+ 127   2          if (*direction == 1)
+ 128   2          {
+ 129   3            if (*bit_index <= 7)
+ 130   3            {
+ 131   4              *port = 1;
+ 132   4              index = *bit_index;
+ 133   4            }
+ 134   3            else
+ 135   3            {
+ 136   4              *port = 4;
+ 137   4              index = 0x07 - (*max_bit_nr - *bit_index);
+ 138   4            }
+ 139   3          }
+ 140   2          else
+ 141   2          {
+ 142   3            if (*bit_index <= 7)
+ 143   3            {
+ 144   4              *port = 4;
+ 145   4              index = 0x07 - *bit_index;
+ 146   4            }
+ 147   3            else
+ 148   3            {
+ 149   4              *port = 1;
+ 150   4              index = (*bit_index - *max_bit_nr) - 1;
+ 151   4            }
+ 152   3          }
+ 153   2          // switch LED's
+ 154   2          port_controller(index, port);
+ 155   2          
+ 156   2          // add one to the Bit Index
+ 157   2          *bit_index += 1;
+ 158   2        }
+ 159   1        else
+ 160   1        {
+ 161   2          // reset Bit Index
+ 162   2          *bit_index = 1;
+ 163   2          
+ 164   2          if (*direction == 1)
+ 165   2          {
+ 166   3            *direction = 0x00;
+ 167   3          }
+ 168   2          else
+ 169   2          {
+ 170   3            *direction = 0x01;
+ 171   3          }
+ 172   2        }
+ 173   1      }
+ 174          
+ 175          
+ 176          void port_controller(int port, int *port_nr)
+ 177          {
+ 178   1        char portOn = 0x00;
+ 179   1      
+C51 COMPILER V9.60.0.0   MAIN                                                              11/17/2021 12:27:36 PAGE 4   
+
+ 180   1        // turn all bits off
+ 181   1        P1 = P1 & 0x00;
+ 182   1        P4 = P4 & 0x00;
+ 183   1      
+ 184   1        if (*port_nr == 1)
+ 185   1        {
+ 186   2          // turn bit on
+ 187   2          portOn = potenzieren(2, port);
+ 188   2          P1 = P1 | portOn;
+ 189   2        }
+ 190   1        else if (*port_nr == 4)
+ 191   1        {
+ 192   2          // turn bit on
+ 193   2          portOn = potenzieren(2, port);
+ 194   2          P4 = P4 | portOn;
+ 195   2        }
+ 196   1        else
+ 197   1        { }
+ 198   1      }
+ 199          
+ 200          
+ 201          void delay(int ms)
+ 202          {
+ 203   1       int index1 = 0;
+ 204   1       int index2 = 0;
+ 205   1      
+ 206   1        for (; index1 <= (ms * 2); index1++)
+ 207   1        {
+ 208   2          for (index2 = 0; index2 <= 1000; index2++)
+ 209   2          { }
+ 210   2        }
+ 211   1      }
+ 212          
+ 213          
+ 214          int potenzieren(int basis, int potenz)
+ 215          {
+ 216   1        // init index
+ 217   1        int positivePotenz = potenz;
+ 218   1        int index = 0;
+ 219   1        int zwischenergebnis = 1;
+ 220   1      
+ 221   1        if (potenz < 0) {
+ 222   2          positivePotenz = potenz * (-1);
+ 223   2        }
+ 224   1        
+ 225   1        // die Potenz in einer for-Schleife berechnen
+ 226   1        for (index = 0; index < positivePotenz; index = index + 1)
+ 227   1        {
+ 228   2          // das Zwischenergebnis wird in der Variablen "zwischenergebnis" gespeichert
+ 229   2          zwischenergebnis = zwischenergebnis * basis;
+ 230   2        }
+ 231   1      
+ 232   1        return zwischenergebnis;
+ 233   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    870    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      59
+C51 COMPILER V9.60.0.0   MAIN                                                              11/17/2021 12:27:36 PAGE 5   
+
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
