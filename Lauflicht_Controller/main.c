@@ -11,6 +11,7 @@ Funktionen:
 Aenderungen:
 2021-11-08 - Anlegen dieses Projektes
 2021-11-23 - Hinzufügen der Funktionalitäten "umdrehen" und "stoppen"
+2021-12-02 - Add timer0 and Interrupts
 
 *****************************************************************************/
 /******************* Text im Quelltext einbinden *********************/
@@ -30,10 +31,26 @@ void delay(int ms);
 void port_controller(int port, int *port_nr);
 int potenzieren(int basis, int potenz);
 
+// Interrupt functions
+
+
 /************************ Hauptprogramm ******************************/
 
 void main()
 {
+	//  Timer 0 Konfigurieren
+	TR0 = 0; // aushalt
+	TF0 = 0; // Überlauf zurücksetzen
+	ITO = 0; // IR gelöscht
+	TMOD = 0x01 // Timer 0 16Bit
+	TL0  = 0xAF // 
+	TH0  = 0x3C // = 0x3CAF
+	
+	// IR System Configuration
+	ET0 = 1; // IR for Timer 0
+	EAL = 0; // All IRs off
+	
+	// program vars
 	const int max_bit_nr = 15;
 	int direction = 1;
 	int bit_index = 0;
