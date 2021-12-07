@@ -21,7 +21,7 @@ Aenderungen:
 
 
 /*********************** globale Variablen ***************************/
-
+int timer0_counter = 0;
 
 /************************** Prototypen *******************************/
 void readButton(int* direction, char* stop, int* bit_index, int* max_bit_nr, char* buttonStatus);
@@ -32,24 +32,12 @@ void port_controller(int port, int *port_nr);
 int potenzieren(int basis, int potenz);
 
 // Interrupt functions
-
+void IRQ_Timer0();
 
 /************************ Hauptprogramm ******************************/
 
 void main()
 {
-	//  Timer 0 Konfigurieren
-	TR0 = 0; // aushalt
-	TF0 = 0; // Überlauf zurücksetzen
-	ITO = 0; // IR gelöscht
-	TMOD = 0x01 // Timer 0 16Bit
-	TL0  = 0xAF // 
-	TH0  = 0x3C // = 0x3CAF
-	
-	// IR System Configuration
-	ET0 = 1; // IR for Timer 0
-	EAL = 0; // All IRs off
-	
 	// program vars
 	const int max_bit_nr = 15;
 	int direction = 1;
@@ -58,6 +46,19 @@ void main()
 	char stop = 0x00;
 	
 	char buttonStatus = 0x00;
+	
+	//  Timer 0 Konfigurieren
+	TR0 = 0; // aushalt
+	TF0 = 0; // Überlauf zurücksetzen
+	IT0 = 0; // IR gelöscht
+
+	TMOD = 0x01; // Timer 0 16Bit
+	TL0  = 0xAF; // 
+	TH0  = 0x3C; // = 0x3CAF
+	
+	// IR System Configuration
+	ET0 = 1; // IR for Timer 0
+	EAL = 0; // All IRs off
 	
 	// Set ports to zero
 	P1 = 0x00;
@@ -74,6 +75,12 @@ void main()
 		else
 		{ }
 	}
+}
+
+void IRQ_Timer0() interrupt 1
+{
+	TR0 = 0; // aushalt
+	TF0 = 0; // Überlauf zurücksetzen
 }
 
 void readButton(int* direction, char* stop, int* bit_index, int* max_bit_nr, char* buttonStatus)
