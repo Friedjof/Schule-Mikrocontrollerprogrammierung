@@ -120,17 +120,66 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGD500</Key>
-          <Name>(5048=-1,-1,-1,-1,0)(98=-1,-1,-1,-1,0)(82=-1,-1,-1,-1,0)(83=1606,286,1804,382,1)(84=-1,-1,-1,-1,0)(85=-1,-1,-1,-1,0)(86=1494,284,1692,380,1)(87=1495,439,1693,535,1)(88=1495,539,1693,635,1)(89=-1,-1,-1,-1,0)(90=-1,-1,-1,-1,0)(102=-1,-1,-1,-1,0)(80=-1,-1,-1,-1,0)(81=-1,-1,-1,-1,0)(91=-1,-1,-1,-1,0)(92=-1,-1,-1,-1,0)(93=-1,-1,-1,-1,0)(94=-1,-1,-1,-1,0)(100=-1,-1,-1,-1,0)(101=-1,-1,-1,-1,0)(5031=18,540,221,679,1)(104=-1,-1,-1,-1,0)</Name>
+          <Name>(5048=-1,-1,-1,-1,0)(98=896,280,1230,673,1)(82=-1,-1,-1,-1,0)(83=1356,292,1564,407,1)(84=-1,-1,-1,-1,0)(85=-1,-1,-1,-1,0)(86=1244,292,1452,407,1)(87=1242,457,1450,572,1)(88=1241,565,1449,680,1)(89=-1,-1,-1,-1,0)(90=-1,-1,-1,-1,0)(102=-1,-1,-1,-1,0)(80=-1,-1,-1,-1,0)(81=-1,-1,-1,-1,0)(91=1437,407,1647,682,1)(92=-1,-1,-1,-1,0)(93=-1,-1,-1,-1,0)(94=-1,-1,-1,-1,0)(100=-1,-1,-1,-1,0)(101=-1,-1,-1,-1,0)(5031=1,488,214,651,1)(104=-1,-1,-1,-1,0)</Name>
         </SetRegEntry>
       </TargetDriverDllRegistry>
-      <Breakpoint/>
+      <Breakpoint>
+        <Bp>
+          <Number>0</Number>
+          <Type>0</Type>
+          <LineNumber>243</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>-16773744</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>MAIN.C</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\MAIN\243</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>252</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>-16773717</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>MAIN.C</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\MAIN\251</Expression>
+        </Bp>
+        <Bp>
+          <Number>2</Number>
+          <Type>0</Type>
+          <LineNumber>231</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>-16774027</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>MAIN.C</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\MAIN\231</Expression>
+        </Bp>
+      </Breakpoint>
       <Tracepoint>
         <THDelay>0</THDelay>
       </Tracepoint>
       <DebugFlag>
         <trace>0</trace>
         <periodic>1</periodic>
-        <aLwin>0</aLwin>
+        <aLwin>1</aLwin>
         <aCover>0</aCover>
         <aSer1>0</aSer1>
         <aSer2>0</aSer2>
