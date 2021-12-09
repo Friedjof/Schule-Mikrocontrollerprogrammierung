@@ -2,7 +2,7 @@
 h e i n r i c h -h e r t z -b e r u f s k o l l e g  d e r  s t a d t  b o n n
 Autor:			Friedjof Noweck
 Klasse:			IH119
-Datum:			2021-12-08
+Datum:			2021-11-08
 Datei:			main.c
 Einsatz:		Auf dem REG517A Microcontroller
 Beschreibung:	Lauflicht zweier zusammengeschalteter LED Leisten.
@@ -13,6 +13,7 @@ Aenderungen:
 2021-11-23 - Hinzufügen der Funktionalitäten "umdrehen" und "stoppen"
 2021-12-02 - Add timer0 and Interrupts
 2021-12-08 - Interrupt modification
+2021-12-09 - Conversion of the delay function
 
 *****************************************************************************/
 /******************* Text im Quelltext einbinden *********************/
@@ -240,20 +241,20 @@ void delay(int ms, int* direction, char* stop, int* bit_index, int* max_bit_nr, 
 }
 void IRQ_Timer0() interrupt 1
 {
-	TR0 = 0; // timer0 aushalt
+	TR0 = 0; // timer0 ausschalten
 	TF0 = 0; // Überlauf zurücksetzen
+	
+	TL0 = 0xAF; // 
+	TH0 = 0x3C; // = 0x3CAF
 	
 	if (timer0_counter >= 1)
 	{
 		timer0_counter--;
+	
+		TR0 = 1; // timer0 einschalten
 	}
 	else
-	{
-		timer0_counter = timer0_default;
-		TL0 = 0xAF; // 
-		TH0 = 0x3C; // = 0x3CAF
-	}
-	ET0 = 0;
+	{ }
 }
 
 
