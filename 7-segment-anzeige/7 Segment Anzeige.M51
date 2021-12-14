@@ -1,0 +1,199 @@
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                    12/14/2021  21:13:23  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22.2.0, INVOKED BY:
+C:\KEIL_V5\C51\BIN\BL51.EXE main.obj TO 7 Segment Anzeige RAMSIZE (256) CODE (0X0000-0X1FFE) XDATA (0X4000-0XBFFE, 0XF80
+>> 0-0XFFFF)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  main.obj (MAIN)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C_STARTUP)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?IMUL)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?SIDIV)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?UIDIV)
+
+
+LINK MAP OF MODULE:  7 Segment Anzeige (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0007H     UNIT         _DATA_GROUP_
+            IDATA   000FH     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+                    0003H     07FDH                  *** GAP ***
+            CODE    0800H     009DH     UNIT         ?C?LIB_CODE
+            CODE    089DH     0082H     UNIT         ?PR?_SET_NUMBER?MAIN
+            CODE    091FH     0042H     UNIT         ?PR?_SET_NUMBERS?MAIN
+            CODE    0961H     0039H     UNIT         ?PR?_POTENZIEREN?MAIN
+            CODE    099AH     000CH     UNIT         ?C_C51STARTUP
+            CODE    09A6H     0007H     UNIT         ?PR?MAIN?MAIN
+
+
+
+OVERLAY MAP OF MODULE:   7 Segment Anzeige (MAIN)
+
+
+SEGMENT                          DATA_GROUP 
+  +--> CALLED SEGMENT          START    LENGTH
+----------------------------------------------
+?C_C51STARTUP                  -----    -----
+  +--> ?PR?MAIN?MAIN
+
+?PR?MAIN?MAIN                  -----    -----
+  +--> ?PR?_SET_NUMBERS?MAIN
+
+?PR?_SET_NUMBERS?MAIN          0008H    0004H
+  +--> ?PR?_SET_NUMBER?MAIN
+
+?PR?_SET_NUMBER?MAIN           000CH    0001H
+  +--> ?PR?_POTENZIEREN?MAIN
+
+?PR?_POTENZIEREN?MAIN          000DH    0002H
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                  12/14/2021  21:13:23  PAGE 2
+
+
+
+
+
+SYMBOL TABLE OF MODULE:  7 Segment Anzeige (MAIN)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:00E8H         PUBLIC        P4
+  D:00FAH         PUBLIC        P6
+  C:09A6H         PUBLIC        main
+  C:091FH         PUBLIC        _set_numbers
+  C:0961H         PUBLIC        _potenzieren
+  C:089DH         PUBLIC        _set_number
+  -------         PROC          MAIN
+  C:09A6H         LINE#         32
+  C:09A6H         LINE#         33
+  C:09A6H         LINE#         34
+  -------         ENDPROC       MAIN
+  -------         PROC          _SET_NUMBERS
+  D:0008H         SYMBOL        nrs
+  -------         DO            
+  D:000AH         SYMBOL        segment
+  -------         ENDDO         
+  C:091FH         LINE#         37
+  C:0923H         LINE#         38
+  C:0923H         LINE#         39
+  C:0928H         LINE#         41
+  C:092CH         LINE#         42
+  C:092CH         LINE#         43
+  C:093EH         LINE#         44
+  C:094DH         LINE#         45
+  C:0960H         LINE#         46
+  -------         ENDPROC       _SET_NUMBERS
+  -------         PROC          _SET_NUMBER
+  D:000CH         SYMBOL        nr
+  D:0005H         SYMBOL        segment
+  C:089DH         LINE#         48
+  C:089FH         LINE#         49
+  C:089FH         LINE#         50
+  C:089FH         LINE#         52
+  C:08B7H         LINE#         54
+  C:08C1H         LINE#         55
+  C:08C1H         LINE#         56
+  C:08C4H         LINE#         57
+  C:08C5H         LINE#         58
+  C:08CBH         LINE#         59
+  C:08CBH         LINE#         60
+  C:08CEH         LINE#         61
+  C:08CFH         LINE#         62
+  C:08D5H         LINE#         63
+  C:08D5H         LINE#         64
+  C:08D8H         LINE#         65
+  C:08D9H         LINE#         66
+  C:08DFH         LINE#         67
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                  12/14/2021  21:13:23  PAGE 3
+
+
+  C:08DFH         LINE#         68
+  C:08E2H         LINE#         69
+  C:08E3H         LINE#         70
+  C:08E9H         LINE#         71
+  C:08E9H         LINE#         72
+  C:08ECH         LINE#         73
+  C:08EDH         LINE#         74
+  C:08F3H         LINE#         75
+  C:08F3H         LINE#         76
+  C:08F6H         LINE#         77
+  C:08F7H         LINE#         78
+  C:08FDH         LINE#         79
+  C:08FDH         LINE#         80
+  C:0900H         LINE#         81
+  C:0901H         LINE#         82
+  C:0907H         LINE#         83
+  C:0907H         LINE#         84
+  C:090AH         LINE#         85
+  C:090BH         LINE#         86
+  C:0911H         LINE#         87
+  C:0911H         LINE#         88
+  C:0914H         LINE#         89
+  C:0915H         LINE#         90
+  C:091BH         LINE#         91
+  C:091BH         LINE#         92
+  C:091EH         LINE#         93
+  C:091EH         LINE#         95
+  C:091EH         LINE#         96
+  -------         ENDPROC       _SET_NUMBER
+  -------         PROC          _POTENZIEREN
+  D:000DH         SYMBOL        basis
+  D:0004H         SYMBOL        potenz
+  -------         DO            
+  D:0006H         SYMBOL        positivePotenz
+  D:0002H         SYMBOL        index
+  D:0001H         SYMBOL        zwischenergebnis
+  -------         ENDDO         
+  C:0961H         LINE#         98
+  C:0965H         LINE#         99
+  C:0965H         LINE#         101
+  C:0969H         LINE#         102
+  C:0969H         LINE#         103
+  C:096BH         LINE#         105
+  C:0973H         LINE#         106
+  C:097AH         LINE#         107
+  C:097AH         LINE#         110
+  C:098AH         LINE#         111
+  C:098AH         LINE#         113
+  C:0990H         LINE#         114
+  C:0997H         LINE#         116
+  C:0999H         LINE#         117
+  -------         ENDPROC       _POTENZIEREN
+  -------         ENDMOD        MAIN
+
+  -------         MODULE        ?C?IMUL
+  C:0800H         PUBLIC        ?C?IMUL
+  -------         ENDMOD        ?C?IMUL
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                  12/14/2021  21:13:23  PAGE 4
+
+
+
+  -------         MODULE        ?C?SIDIV
+  C:0812H         PUBLIC        ?C?SIDIV
+  -------         ENDMOD        ?C?SIDIV
+
+  -------         MODULE        ?C?UIDIV
+  C:0848H         PUBLIC        ?C?UIDIV
+  -------         ENDMOD        ?C?UIDIV
+
+******************************************************************************
+* RESTRICTED VERSION WITH 0800H BYTE CODE SIZE LIMIT; USED: 0104H BYTE (12%) *
+******************************************************************************
+
+Program Size: data=16.0 xdata=0 code=432
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)
