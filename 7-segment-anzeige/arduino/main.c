@@ -1,30 +1,10 @@
-/*****************************************************************************
-h e i n r i c h -h e r t z -b e r u f s k o l l e g  d e r  s t a d t  b o n n
-Autor:			Friedjof Noweck
-Klasse:			IH119
-Datum:			2021-12-10
-Datei:			main.c
-Einsatz:		
-Beschreibung:	can conroll the 7 segment display
-Funktionen:		display numbers on 7 segment displays
-******************************************************************************
-Aenderungen:
-2021-12-10 init project + add simple functions
-2021-12-14 work on the functions
+// Friedjof Noweck
+// 2021-12-22 Mi
 
-*****************************************************************************/
-/******************* Text im Quelltext einbinden *********************/
-#include "REG517A.h"
+#include <Arduino.h>
 
-/*************************** Konstanten ******************************/
-
-
-/*********************** globale Variablen ***************************/
-// ms since startup
-unsigned long int milliCounter = 0;
-
-/************************** Prototypen *******************************/
-void set_number(char nrs[10], int numDigits, int nr, int segment);
+void set_number(char nrs[10], byte numDigits, int nr, int segment);
+void set(byte numDigits, char nr, char segment);
 void reset();
 void checkIncrementalEncoder(char *IncrementalEncoderBools, char *mainBools, unsigned int *counter, unsigned long int *timer0, char IncrementalEncoderSpeedLimit);
 
@@ -32,15 +12,11 @@ char potenzieren(int basis, int potenz);
 int fixPotenz(int potenz);
 
 char bitCopy(char masterChar, char fromBit, char toBit);
-char bitFlip(char masterChar, char bitIndex);
-char setBit(char masterChar, char bitIndex, char state);
-char getBit(char masterChar, char bitIndex);
+char bitFlip(char masterChar, char bit);
+char setBit(char masterChar, char bit, char state);
+char getBit(char masterChar, char bit);
 
-void IRQ_Timer0();
-unsigned long int milli();
-/************************ Hauptprogramm ******************************/
-
-void main()
+void setup()
 {
   // Die Pins zu den Ziffern werden festgelegt
   //byte digitPins[4] = {2, 3, 4, 5};
@@ -49,14 +25,14 @@ void main()
   // Konfigurierung der einzelnen Ziffern
   char nrs[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
 
-  unsigned long int timer0 = milli();
-  unsigned long int timer1 = milli();
+  unsigned long int timer0 = millis();
+  unsigned long int timer1 = millis();
 
   // | effectStepTrigger | effect | numDigitsBit2 | numDigitsBit1 | segmentBit2 | segmentBit1 | flash | countdown |
   char mainBools = 0x00;
 
   // Hier wird die Anzahl der Ziffernbloecke angegeben
-  int numDigits = 4;
+  byte numDigits = 4;
 
   // | 0 | 0 | 0 | Button | CLK[1] | CLK[0] | DT[1] | DT[0] |
   char IncrementalEncoderBools = 0x00;
@@ -64,35 +40,32 @@ void main()
   const char IncrementalEncoderSpeedLimit = 20;
 
   unsigned int counter = 0;
-  int alertCounter = 0;
+  byte alertCounter = 0;
   
+
   char i = 2;
-	
-	//Timer0 konfigurieren
-	TR0 = 0; //ausgeschaltet
-	TF0 = 0; //Überlauf zurückgesetzt
-	IT0 = 0; //IR gelöscht
-	TMOD = 0x01;//Timer1: Timer, 8bit prescale, Timer0: Timer, 16bit
-	
-	//Startwert 15535 -> 0x3CAF
-	//Startwert 55535 -> 0xD8EF
-	TL0 = 0xD8;
-	TH0 = 0xEF;
-	
-	//IR System konfigurieren
-	ET0 = 1; //IR für Timer0 aktiv
-	EAL = 0; //Alles aus
-	
-	P6 = setBit(setBit(setBit(setBit(P6, 0x07, 0x01), 0x06, 0x01), 0x05, 0x01), 0x04, 0x01);
-	
-	// Main Loop
-  while(1)
+
+  // Init serial interface
+  Serial.begin(115200);
+
+  pinMode(A0, INPUT);
+  pinMode(A1, INPUT);
+  pinMode(A2, INPUT);
+
+  // init display ports
+  for (; i <= 13; i++){
+    pinMode(i, OUTPUT);
+    if (i <= 5)
+    {
+      digitalWrite(i, HIGH);
+    }
+  }
+
+  // Main Loop
+  while(true)
   {
-		EAL = 1;//Interrupts aktivieren
-		TR0 = 1; // Timer0 aktiv!!
-		
     // liesst den Inkrementalgeber aus [Pin A0 und A1]
-    IncrementalEncoderBools = setBit(setBit(IncrementalEncoderBools, 0x01, getBit(P3, 0x03)), 0x04, getBit(P3, 0x5));
+    IncrementalEncoderBools = setBit(setBit(IncrementalEncoderBools, 0x01, (char)digitalRead(A1)), 0x04, (char)digitalRead(A0));
 
     checkIncrementalEncoder(&IncrementalEncoderBools, &mainBools, &counter, &timer0, IncrementalEncoderSpeedLimit);
 
@@ -103,7 +76,7 @@ void main()
     }
     else
     {
-      // Wenn der Segment Zahler bei drei angelangt ist, wird hier der Zahler wieder auf 0 zurück gesetzt.
+      // Wenn der Segment Zahler bei drei angelangt ist, wird hier der Zahler wieder auf 0 zurÃ¼ck gesetzt.
       mainBools = setBit(setBit(mainBools, 0x04, 0x00), 0x08, 0x00);
     }
     
@@ -122,46 +95,45 @@ void main()
         mainBools = setBit(mainBools, 0x02, 0x00);
       }
 
-      if (milli() - timer1 < 1000)
+      if (millis() - timer1 < 1000)
       {
         // Setzen der Display Segmente
         if (alertCounter % 2 == 0)
         {
-					
-          //set(numDigits, 0x5C, potenzieren(2, alertCounter / 2));
+          set(numDigits, 0x5C, potenzieren(2, alertCounter / 2));
         }
         else
         {
-          //set(numDigits, 0x63, potenzieren(2, alertCounter / 2));
+          set(numDigits, 0x63, potenzieren(2, alertCounter / 2));
         }
 
-        if (!((milli() - timer1) % 62) && alertCounter != 7 * !getBit(mainBools, 0x40) && !getBit(mainBools, 0x80))
+        if (!((millis() - timer1) % 62) && alertCounter != 7 * !getBit(mainBools, 0x40) && !getBit(mainBools, 0x80))
         {
           alertCounter += 1 + ((-2) * getBit(mainBools, 0x40));
           mainBools = setBit(mainBools, 0x80, 1);
         }
-        else if (!((milli() - timer1) % 62) && alertCounter == 7 * !getBit(mainBools, 0x40) && !getBit(mainBools, 0x80))
+        else if (!((millis() - timer1) % 62) && alertCounter == 7 * !getBit(mainBools, 0x40) && !getBit(mainBools, 0x80))
         {
           alertCounter = 7 * !getBit(mainBools, 0x40);
           mainBools = bitFlip(mainBools, 0x40);
           mainBools = setBit(mainBools, 0x80, 1);
         }
-        else if (((milli() - timer1) % 62) > 0x00 && getBit(mainBools, 0x80))
+        else if (((millis() - timer1) % 62) > 0x00 && getBit(mainBools, 0x80))
         {
           mainBools = setBit(mainBools, 0x80, 0x00);
         }
         else
         { }
       }
-      else if (milli() - timer1 < 2000 && 0x00)
+      else if (millis() - timer1 < 2000 && 0x00)
       {
         // Anzeigen des aktuellen Display Segmentes
         set_number(nrs, numDigits, (counter / fixPotenz((mainBools & 0x0C) / 0x04)) % 10, (numDigits - 1) - ((mainBools & 0x0C) / 0x04));
       }
       else
       {
-        // Den Timer auf die aktuelle Zeit zurück setzen
-        timer1 = milli();
+        // Den Timer auf die aktuelle Zeit zurÃ¼ck setzen
+        timer1 = millis();
 
         mainBools = setBit(mainBools, 0x80, 0x00);
         alertCounter = 7 * !getBit(mainBools, 0x40);
@@ -170,10 +142,10 @@ void main()
     else
     { }
 
-    // Sekunden runter zählen
-    if (milli() - timer0 >= 100 && getBit(mainBools, 0x01))
+    // Sekunden runter zÃ¤hlen
+    if (millis() - timer0 >= 100 && getBit(mainBools, 0x01))
     {
-      timer0 = milli();
+      timer0 = millis();
       if (counter > 0)
       {
         counter--;
@@ -187,31 +159,68 @@ void main()
   }
 }
 
-void set_number(char nrs[10], int numDigits, int nr, int segment)
+void loop()
+{ }
+
+void set_number(char nrs[10], byte numDigits, int nr, int segment)
 {
-	
+  if (segment == 2)
+  {
+    set(numDigits, setBit(nrs[nr], 0x80, 0x01), potenzieren(2, segment));
+  }
+  else
+  {
+    set(numDigits, nrs[nr], potenzieren(2, segment));
+  }
 }
 
-void IRQ_Timer0() interrupt 1
+void set(byte numDigits, char nr, char segment)
 {
-	TR0 = 0;
-	EAL = 0;
-	
-	milliCounter++;
-	
-	TL0 = 0xD8;
-	TH0 = 0xEF;
-	
-	EAL = 1;
-	TR0 = 1;
+  int i = 0;
+
+  for (int i = 0; i < 8; i++)
+  {
+    digitalWrite(i + 6, LOW);
+  }
+
+  for (i = 0; i < numDigits; i++)
+  {
+    if ((segment & potenzieren(2, i)) == potenzieren(2, i))
+    {
+      digitalWrite(2 + i, LOW);
+    }
+    else
+    {
+      digitalWrite(2 + i, HIGH);
+    }
+  }
+  
+  for (int i = 0; i < 8; i++)
+  {
+    if ((nr & potenzieren(2, i)) == potenzieren(2, i))
+    {
+      digitalWrite(i + 6, HIGH);
+    }
+    else
+    {
+      digitalWrite(i + 6, LOW);
+    }
+  }
 }
-unsigned long int milli()
+
+void reset()
 {
-	return milliCounter;
+  int i = 0;
+
+  for (i = 0; i < 8; i++)
+  {
+    digitalWrite(i + 6, LOW);
+  }
 }
+
 void checkIncrementalEncoder(char *IncrementalEncoderBools, char *mainBools, unsigned int *counter, unsigned long int *timer0, char IncrementalEncoderSpeedLimit)
 {
-  char buttonStatus = getBit(P3, 0x04);
+  char buttonStatus = digitalRead(A2);
 
   // Wenn der Button Status nicht dem gespeicherten Wert entspricht 
   if (buttonStatus ^ getBit(*IncrementalEncoderBools, 0x10))
@@ -351,21 +360,21 @@ char bitCopy(char masterChar, char fromBit, char toBit)
   return masterChar;
 }
 
-char setBit(char masterChar, char bitIndex, char state)
+char setBit(char masterChar, char bit, char state)
 {
   // Wenn 'bit' nicht 'state' entspricht
-  if ((masterChar & bitIndex) != state * bitIndex)
+  if ((masterChar & bit) != state * bit)
   {
     // Wenn bit gesetzt
-    if ((masterChar & bitIndex) == bitIndex)
+    if ((masterChar & bit) == bit)
     {
       // Bit loeschen
-      masterChar = masterChar & (0x0FF ^ bitIndex);
+      masterChar = masterChar & (0x0FF ^ bit);
     }
     else
     {
       // Bit setzen
-      masterChar = masterChar | bitIndex;
+      masterChar = masterChar | bit;
     }
   }
   else
@@ -374,21 +383,19 @@ char setBit(char masterChar, char bitIndex, char state)
   return masterChar;
 }
 
-char getBit(char masterChar, char bitIndex)
+char getBit(char masterChar, char bit)
 {
-  return (masterChar & bitIndex) / bitIndex;
+  return (masterChar & bit) / bit;
 }
 
-
-char bitFlip(char masterChar, char bitIndex)
-{
-  if (!(masterChar & bitIndex))
+char bitFlip(char masterChar, char bit){
+  if (!(masterChar & bit))
   {
-    masterChar = masterChar | bitIndex;
+    masterChar = masterChar | bit;
   }
   else
   {
-    masterChar = masterChar & (0x0FF ^ bitIndex);
+    masterChar = masterChar & (0x0FF ^ bit);
   }
   return masterChar;
 }

@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              12/14/2021 20:56:53 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              01/12/2022 12:27:03 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -29,116 +29,449 @@ line level    source
   20          
   21          
   22          /*********************** globale Variablen ***************************/
-  23          
-  24          
-  25          /************************** Prototypen *******************************/
-  26          void set_number(char nr, char segment);
-  27          void set_numbers(int nrs);
-  28          char potenzieren(int basis, int potenz);
-  29          
-  30          /************************ Hauptprogramm ******************************/
-  31          
-  32          void main()
-  33          {
-  34   1        set_numbers(1234);
-  35   1      }
-  36          
-  37          void set_numbers(int nrs)
-  38          {
-  39   1        int segment = 0;
-  40   1        
-  41   1        for (segment = 0; segment < 4; segment++)
-  42   1        {
-  43   2          set_number(nrs % 10, segment);
-  44   2          nrs /= 10;
-  45   2        }
-  46   1      }
-  47          
-  48          void set_number(char nr, char segment)
-  49          {
-  50   1        nr = nr;
-  51   1        
-  52   1        P6 = P6 | potenzieren(2, segment + 4);
-  53   1        
-  54   1        if (nr == 0)
-  55   1        {
-C51 COMPILER V9.60.0.0   MAIN                                                              12/14/2021 20:56:53 PAGE 2   
+  23          // ms since startup
+  24          unsigned long int milliCounter = 0;
+  25          
+  26          /************************** Prototypen *******************************/
+  27          void set_number(char nrs[10], int numDigits, int nr, int segment);
+  28          void reset();
+  29          void checkIncrementalEncoder(char *IncrementalEncoderBools, char *mainBools, unsigned int *counter, unsign
+             -ed long int *timer0, char IncrementalEncoderSpeedLimit);
+  30          
+  31          char potenzieren(int basis, int potenz);
+  32          int fixPotenz(int potenz);
+  33          
+  34          char bitCopy(char masterChar, char fromBit, char toBit);
+  35          char bitFlip(char masterChar, char bitIndex);
+  36          char setBit(char masterChar, char bitIndex, char state);
+  37          char getBit(char masterChar, char bitIndex);
+  38          
+  39          void IRQ_Timer0();
+  40          unsigned long int milli();
+  41          /************************ Hauptprogramm ******************************/
+  42          
+  43          void main()
+  44          {
+  45   1        // Die Pins zu den Ziffern werden festgelegt
+  46   1        //byte digitPins[4] = {2, 3, 4, 5};
+  47   1        // Die Pins zu den //Segmenten werden festgelegt
+  48   1        //byte segmentPins[8] = {6, 7, 8, 9, 10, 11, 12, 13};
+  49   1        // Konfigurierung der einzelnen Ziffern
+  50   1        char nrs[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
+  51   1      
+  52   1        unsigned long int timer0 = milli();
+  53   1        unsigned long int timer1 = milli();
+  54   1      
+C51 COMPILER V9.60.0.0   MAIN                                                              01/12/2022 12:27:03 PAGE 2   
 
-  56   2          P4 = P4 | 0xFB;
-  57   2        }
-  58   1        else if(nr == 1)
-  59   1        {
-  60   2          P4 = P4 | 0xC2;
-  61   2        }
-  62   1        else if(nr == 2)
-  63   1        {
-  64   2          P4 = P4 | 0x5F;
-  65   2        }
-  66   1        else if(nr == 3)
-  67   1        {
-  68   2          P4 = P4 | 0xCF;
-  69   2        }
-  70   1        else if(nr == 4)
-  71   1        {
-  72   2          P4 = P4 | 0xE6;
-  73   2        }
-  74   1        else if(nr == 5)
-  75   1        {
-  76   2          P4 = P4 | 0xED;
-  77   2        }
-  78   1        else if(nr == 6)
-  79   1        {
-  80   2          P4 = P4 | 0xFD;
-  81   2        }
-  82   1        else if(nr == 7)
-  83   1        {
-  84   2          P4 = P4 | 0xEB;
-  85   2        }
-  86   1        else if(nr == 8)
-  87   1        {
-  88   2          P4 = P4 | 0xFF;
-  89   2        }
-  90   1        else if(nr == 9)
-  91   1        {
-  92   2          P4 = P4 | 0xEF;
-  93   2        }
-  94   1        else
-  95   1        { }
-  96   1      }
-  97          
-  98          char potenzieren(int basis, int potenz)
-  99          {
- 100   1        // init index
- 101   1        int positivePotenz = potenz;
- 102   1        int index = 0;
- 103   1        char zwischenergebnis = 1;
- 104   1      
- 105   1        if (potenz < 0) {
- 106   2          positivePotenz = potenz * (-1);
- 107   2        }
- 108   1      
- 109   1        // die Potenz in einer for-Schleife berechnen
- 110   1        for (index = 0; index < positivePotenz; index = index + 1)
- 111   1        {
- 112   2          // das Zwischenergebnis wird in der Variablen "zwischenergebnis" gespeichert
- 113   2          zwischenergebnis = zwischenergebnis * basis;
- 114   2        }
- 115   1      
- 116   1        return zwischenergebnis;
- 117   1      }
-C51 COMPILER V9.60.0.0   MAIN                                                              12/14/2021 20:56:53 PAGE 3   
+  55   1        // | effectStepTrigger | effect | numDigitsBit2 | numDigitsBit1 | segmentBit2 | segmentBit1 | flash | co
+             -untdown |
+  56   1        char mainBools = 0x00;
+  57   1      
+  58   1        // Hier wird die Anzahl der Ziffernbloecke angegeben
+  59   1        int numDigits = 4;
+  60   1      
+  61   1        // | 0 | 0 | 0 | Button | CLK[1] | CLK[0] | DT[1] | DT[0] |
+  62   1        char IncrementalEncoderBools = 0x00;
+  63   1      
+  64   1        const char IncrementalEncoderSpeedLimit = 20;
+  65   1      
+  66   1        unsigned int counter = 0;
+  67   1        int alertCounter = 0;
+  68   1        
+  69   1        char i = 2;
+  70   1        
+  71   1        //Timer0 konfigurieren
+  72   1        TR0 = 0; //ausgeschaltet
+  73   1        TF0 = 0; //Überlauf zurückgesetzt
+  74   1        IT0 = 0; //IR gelöscht
+  75   1        TMOD = 0x01;//Timer1: Timer, 8bit prescale, Timer0: Timer, 16bit
+  76   1        
+  77   1        //Startwert 15535 -> 0x3CAF
+  78   1        //Startwert 55535 -> 0xD8EF
+  79   1        TL0 = 0xD8;
+  80   1        TH0 = 0xEF;
+  81   1        
+  82   1        //IR System konfigurieren
+  83   1        ET0 = 1; //IR für Timer0 aktiv
+  84   1        EAL = 0; //Alles aus
+  85   1        
+  86   1        P6 = setBit(setBit(setBit(setBit(P6, 0x07, 0x01), 0x06, 0x01), 0x05, 0x01), 0x04, 0x01);
+  87   1        
+  88   1        // Main Loop
+  89   1        while(1)
+  90   1        {
+  91   2          EAL = 1;//Interrupts aktivieren
+  92   2          TR0 = 1; // Timer0 aktiv!!
+  93   2          
+  94   2          // liesst den Inkrementalgeber aus [Pin A0 und A1]
+  95   2          IncrementalEncoderBools = setBit(setBit(IncrementalEncoderBools, 0x01, getBit(P3, 0x03)), 0x04, getBit
+             -(P3, 0x5));
+  96   2      
+  97   2          checkIncrementalEncoder(&IncrementalEncoderBools, &mainBools, &counter, &timer0, IncrementalEncoderSpe
+             -edLimit);
+  98   2      
+  99   2          if (!getBit(mainBools, 0x0C))
+ 100   2          {
+ 101   3            // addiert eins auf den Segment Zahler drauf
+ 102   3            mainBools = setBit(setBit(mainBools, 0x08, getBit(((mainBools & 0x0C) / 0x04) + 0x01, 0x02)), 0x04, 
+             -getBit(((mainBools & 0x0C) / 0x04) + 0x01, 0x01));
+ 103   3          }
+ 104   2          else
+ 105   2          {
+ 106   3            // Wenn der Segment Zahler bei drei angelangt ist, wird hier der Zahler wieder auf 0 zurück gesetzt.
+ 107   3            mainBools = setBit(setBit(mainBools, 0x04, 0x00), 0x08, 0x00);
+ 108   3          }
+ 109   2          
+ 110   2          // Wenn flash Bit nicht gesetzt
+ 111   2          if (!getBit(mainBools, 0x02))
+ 112   2          {
+C51 COMPILER V9.60.0.0   MAIN                                                              01/12/2022 12:27:03 PAGE 3   
 
+ 113   3              // Anzeigen des aktuellen Display Segmentes
+ 114   3            set_number(nrs, numDigits, (counter / fixPotenz((mainBools & 0x0C) / 0x04)) % 10, (numDigits - 1) - 
+             -((mainBools & 0x0C) / 0x04));
+ 115   3          }
+ 116   2          // flash effect:
+ 117   2          else if (getBit(mainBools, 0x02))
+ 118   2          {
+ 119   3            if (counter > 0 && getBit(mainBools, 0x02))
+ 120   3            {
+ 121   4              // flash Bit loeschen
+ 122   4              mainBools = setBit(mainBools, 0x02, 0x00);
+ 123   4            }
+ 124   3      
+ 125   3            if (milli() - timer1 < 1000)
+ 126   3            {
+ 127   4              // Setzen der Display Segmente
+ 128   4              if (alertCounter % 2 == 0)
+ 129   4              {
+ 130   5                
+ 131   5                //set(numDigits, 0x5C, potenzieren(2, alertCounter / 2));
+ 132   5              }
+ 133   4              else
+ 134   4              {
+ 135   5                //set(numDigits, 0x63, potenzieren(2, alertCounter / 2));
+ 136   5              }
+ 137   4      
+ 138   4              if (!((milli() - timer1) % 62) && alertCounter != 7 * !getBit(mainBools, 0x40) && !getBit(mainBool
+             -s, 0x80))
+ 139   4              {
+ 140   5                alertCounter += 1 + ((-2) * getBit(mainBools, 0x40));
+ 141   5                mainBools = setBit(mainBools, 0x80, 1);
+ 142   5              }
+ 143   4              else if (!((milli() - timer1) % 62) && alertCounter == 7 * !getBit(mainBools, 0x40) && !getBit(mai
+             -nBools, 0x80))
+ 144   4              {
+ 145   5                alertCounter = 7 * !getBit(mainBools, 0x40);
+ 146   5                mainBools = bitFlip(mainBools, 0x40);
+ 147   5                mainBools = setBit(mainBools, 0x80, 1);
+ 148   5              }
+ 149   4              else if (((milli() - timer1) % 62) > 0x00 && getBit(mainBools, 0x80))
+ 150   4              {
+ 151   5                mainBools = setBit(mainBools, 0x80, 0x00);
+ 152   5              }
+ 153   4              else
+ 154   4              { }
+ 155   4            }
+ 156   3            else if (milli() - timer1 < 2000 && 0x00)
+ 157   3            {
+ 158   4              // Anzeigen des aktuellen Display Segmentes
+ 159   4              set_number(nrs, numDigits, (counter / fixPotenz((mainBools & 0x0C) / 0x04)) % 10, (numDigits - 1) 
+             -- ((mainBools & 0x0C) / 0x04));
+ 160   4            }
+ 161   3            else
+ 162   3            {
+ 163   4              // Den Timer auf die aktuelle Zeit zurück setzen
+ 164   4              timer1 = milli();
+ 165   4      
+ 166   4              mainBools = setBit(mainBools, 0x80, 0x00);
+ 167   4              alertCounter = 7 * !getBit(mainBools, 0x40);
+ 168   4            }
+ 169   3          }
+ 170   2          else
+C51 COMPILER V9.60.0.0   MAIN                                                              01/12/2022 12:27:03 PAGE 4   
+
+ 171   2          { }
+ 172   2      
+ 173   2          // Sekunden runter zählen
+ 174   2          if (milli() - timer0 >= 100 && getBit(mainBools, 0x01))
+ 175   2          {
+ 176   3            timer0 = milli();
+ 177   3            if (counter > 0)
+ 178   3            {
+ 179   4              counter--;
+ 180   4            }
+ 181   3            else if (counter == 0)
+ 182   3            {
+ 183   4              // flash Bit setzen und countdown Bit loeschen
+ 184   4              mainBools = setBit(setBit(mainBools, 0x02, 0x01), 0x01, 0x00);
+ 185   4            }
+ 186   3          }
+ 187   2        }
+ 188   1      }
+ 189          
+ 190          void set_number(char nrs[10], int numDigits, int nr, int segment)
+ 191          {
+ 192   1        
+ 193   1      }
+*** WARNING C280 IN LINE 190 OF main.c: 'nrs': unreferenced local variable
+*** WARNING C280 IN LINE 190 OF main.c: 'numDigits': unreferenced local variable
+*** WARNING C280 IN LINE 190 OF main.c: 'nr': unreferenced local variable
+*** WARNING C280 IN LINE 190 OF main.c: 'segment': unreferenced local variable
+ 194          
+ 195          void IRQ_Timer0() interrupt 1
+ 196          {
+ 197   1        TR0 = 0;
+ 198   1        EAL = 0;
+ 199   1        
+ 200   1        milliCounter++;
+ 201   1        
+ 202   1        TL0 = 0xD8;
+ 203   1        TH0 = 0xEF;
+ 204   1        
+ 205   1        EAL = 1;
+ 206   1        TR0 = 1;
+ 207   1      }
+ 208          unsigned long int milli()
+ 209          {
+ 210   1        return milliCounter;
+ 211   1      }
+ 212          void checkIncrementalEncoder(char *IncrementalEncoderBools, char *mainBools, unsigned int *counter, unsign
+             -ed long int *timer0, char IncrementalEncoderSpeedLimit)
+ 213          {
+ 214   1        char buttonStatus = getBit(P3, 0x04);
+ 215   1      
+ 216   1        // Wenn der Button Status nicht dem gespeicherten Wert entspricht 
+ 217   1        if (buttonStatus ^ getBit(*IncrementalEncoderBools, 0x10))
+ 218   1        {
+ 219   2          // Wenn der Button Status 0x00 ist
+ 220   2          if (!buttonStatus)
+ 221   2          {
+ 222   3            // Gespcherten Button Status loeschen
+ 223   3            *IncrementalEncoderBools = setBit(*IncrementalEncoderBools, 0x10, 0x00);
+ 224   3      
+ 225   3            if (getBit(*mainBools, 0x01))
+ 226   3            {
+ 227   4              // loescht das Countdown Bit
+C51 COMPILER V9.60.0.0   MAIN                                                              01/12/2022 12:27:03 PAGE 5   
+
+ 228   4              *mainBools = setBit(*mainBools, 0x01, 0x00);
+ 229   4            }
+ 230   3            // Sonst wenn flash Bit gesetzt
+ 231   3            else if (getBit(*mainBools, 0x02))
+ 232   3            {
+ 233   4              // loesche das flash Bit
+ 234   4              *mainBools = setBit(*mainBools, 0x02, 0x00);
+ 235   4            }
+ 236   3            else if (*counter > 0)
+ 237   3            {
+ 238   4              // setzt das Countdown Bit
+ 239   4              *mainBools = setBit(*mainBools, 0x01, 0x01);
+ 240   4            }
+ 241   3            else
+ 242   3            { }
+ 243   3          }
+ 244   2          else
+ 245   2          {
+ 246   3            *IncrementalEncoderBools = setBit(*IncrementalEncoderBools, 0x10, buttonStatus);
+ 247   3          }
+ 248   2        }
+ 249   1        
+ 250   1        // Wenn sich der Status von neu 0x01 und alt 0x02 unterschieden
+ 251   1        if (getBit(*IncrementalEncoderBools, 0x01) ^ getBit(*IncrementalEncoderBools, 0x02))
+ 252   1        {
+ 253   2          // Stelle den Counter aus, wenn er aktiv ist und der Inkrementalgeber getreht wird
+ 254   2          if (getBit(*mainBools, 0x01))
+ 255   2          {
+ 256   3            *mainBools = setBit(*mainBools, 0x01, 0x00);
+ 257   3          }
+ 258   2          // Stelle den falsh aus, wenn er aktiv ist und der Inkrementalgeber getreht wird
+ 259   2          if (getBit(*mainBools, 0x02))
+ 260   2          {
+ 261   3            *mainBools = setBit(*mainBools, 0x02, 0x00);
+ 262   3          }
+ 263   2      
+ 264   2          if ((*IncrementalEncoderBools & 0x03) == 0x01)
+ 265   2          {
+ 266   3            if (getBit(*IncrementalEncoderBools, 0x04))
+ 267   3            {
+ 268   4              if (millis() - *timer0 > IncrementalEncoderSpeedLimit || *counter < 10)
+*** WARNING C206 IN LINE 268 OF main.c: 'millis': missing function-prototype
+ 269   4              {
+ 270   5                if (*counter > 0)
+ 271   5                {
+ 272   6                  *counter -= 1;
+ 273   6                }
+ 274   5              }
+ 275   4              else
+ 276   4              {
+ 277   5                if (*counter > 9)
+ 278   5                {
+ 279   6                  *counter -= 10;
+ 280   6                }
+ 281   5              }
+ 282   4            }
+ 283   3            else
+ 284   3            { }
+ 285   3          }
+ 286   2          else if ((*IncrementalEncoderBools & 0x01) == 0x00 && (*IncrementalEncoderBools & 0x02) == 0x02)
+ 287   2          {
+ 288   3            *timer0 = millis();
+C51 COMPILER V9.60.0.0   MAIN                                                              01/12/2022 12:27:03 PAGE 6   
+
+ 289   3          }
+ 290   2      
+ 291   2          *IncrementalEncoderBools = bitCopy(*IncrementalEncoderBools, 0x01, 0x02);
+ 292   2        }
+ 293   1      
+ 294   1        // Wenn sich der Status von neu 0x04 und alt 0x08 unterschieden
+ 295   1        if (getBit(*IncrementalEncoderBools, 0x04) ^ getBit(*IncrementalEncoderBools, 0x08))
+ 296   1        {
+ 297   2          // Stelle den Counter aus, wenn er aktiv ist und der Inkrementalgeber getreht wird
+ 298   2          if (getBit(*mainBools, 0x01))
+ 299   2          {
+ 300   3            *mainBools = setBit(*mainBools, 0x01, 0x00);
+ 301   3          }
+ 302   2          // Stelle den falsh aus, wenn er aktiv ist und der Inkrementalgeber getreht wird
+ 303   2          if (getBit(*mainBools, 0x02))
+ 304   2          {
+ 305   3            *mainBools = setBit(*mainBools, 0x02, 0x00);
+ 306   3          }
+ 307   2      
+ 308   2          if (getBit(*IncrementalEncoderBools, 0x04) && !getBit(*IncrementalEncoderBools, 0x08))
+ 309   2          {
+ 310   3            if ((*IncrementalEncoderBools & 0x01) == 0x01)
+ 311   3            {
+ 312   4              if (millis() - *timer0 > IncrementalEncoderSpeedLimit || *counter > 9990)
+ 313   4              {
+ 314   5                if (*counter < 9999)
+ 315   5                {
+ 316   6                  *counter += 1;
+ 317   6                }
+ 318   5              }
+ 319   4              else
+ 320   4              {
+ 321   5                if (*counter < 9990)
+ 322   5                {
+ 323   6                  *counter += 10;
+ 324   6                }
+ 325   5              }
+ 326   4            }
+ 327   3          }
+ 328   2          else if (!getBit(*IncrementalEncoderBools, 0x04) && getBit(*IncrementalEncoderBools, 0x08))
+ 329   2          {
+ 330   3            *timer0 = millis();
+ 331   3          }
+ 332   2      
+ 333   2          *IncrementalEncoderBools = bitCopy(*IncrementalEncoderBools, 0x04, 0x08);
+ 334   2        }
+ 335   1      }
+ 336          
+ 337          char bitCopy(char masterChar, char fromBit, char toBit)
+ 338          {
+ 339   1        // Wenn 'fromBit' gesetzt
+ 340   1        if ((masterChar & fromBit) == fromBit)
+ 341   1        {
+ 342   2          // setze 'toBit'
+ 343   2          masterChar = setBit(masterChar, toBit, 0x01);
+ 344   2        }
+ 345   1        else
+ 346   1        {
+ 347   2          // Sonst loesche 'toBit'
+ 348   2          masterChar = setBit(masterChar, toBit, 0x00);
+ 349   2        }
+ 350   1      
+C51 COMPILER V9.60.0.0   MAIN                                                              01/12/2022 12:27:03 PAGE 7   
+
+ 351   1        return masterChar;
+ 352   1      }
+ 353          
+ 354          char setBit(char masterChar, char bitIndex, char state)
+ 355          {
+ 356   1        // Wenn 'bit' nicht 'state' entspricht
+ 357   1        if ((masterChar & bitIndex) != state * bitIndex)
+ 358   1        {
+ 359   2          // Wenn bit gesetzt
+ 360   2          if ((masterChar & bitIndex) == bitIndex)
+ 361   2          {
+ 362   3            // Bit loeschen
+ 363   3            masterChar = masterChar & (0x0FF ^ bitIndex);
+ 364   3          }
+ 365   2          else
+ 366   2          {
+ 367   3            // Bit setzen
+ 368   3            masterChar = masterChar | bitIndex;
+ 369   3          }
+ 370   2        }
+ 371   1        else
+ 372   1        { }
+ 373   1      
+ 374   1        return masterChar;
+ 375   1      }
+ 376          
+ 377          char getBit(char masterChar, char bitIndex)
+ 378          {
+ 379   1        return (masterChar & bitIndex) / bitIndex;
+ 380   1      }
+ 381          
+ 382          
+ 383          char bitFlip(char masterChar, char bitIndex)
+ 384          {
+ 385   1        if (!(masterChar & bitIndex))
+ 386   1        {
+ 387   2          masterChar = masterChar | bitIndex;
+ 388   2        }
+ 389   1        else
+ 390   1        {
+ 391   2          masterChar = masterChar & (0x0FF ^ bitIndex);
+ 392   2        }
+ 393   1        return masterChar;
+ 394   1      }
+ 395          
+ 396          char potenzieren(int basis, int potenz)
+ 397          {
+ 398   1        // init index
+ 399   1        int index = 0;
+ 400   1        char zwischenergebnis = 0x01;
+ 401   1      
+ 402   1        // die Potenz in einer for-Schleife berechnen
+ 403   1        for (index = 0; index < potenz; index = index + 1)
+ 404   1        {
+ 405   2          // das Zwischenergebnis wird in der Variablen "zwischenergebnis" gespeichert
+ 406   2          zwischenergebnis = zwischenergebnis * basis;
+ 407   2        }
+ 408   1        return zwischenergebnis;
+ 409   1      }
+ 410          
+ 411          int fixPotenz(int potenz)
+ 412          {
+C51 COMPILER V9.60.0.0   MAIN                                                              01/12/2022 12:27:03 PAGE 8   
+
+ 413   1        // init index
+ 414   1        int index = 0;
+ 415   1        int zwischenergebnis = 1;
+ 416   1      
+ 417   1        // die Potenz in einer for-Schleife berechnen
+ 418   1        for (index = 0; index < potenz; index = index + 1)
+ 419   1        {
+ 420   2          // das Zwischenergebnis wird in der Variablen "zwischenergebnis" gespeichert
+ 421   2          zwischenergebnis = zwischenergebnis * 10;
+ 422   2        }
+ 423   1        return zwischenergebnis;
+ 424   1      }
+*** WARNING C294 IN LINE 159 OF main.c: unreachable code
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    260    ----
-   CONSTANT SIZE    =   ----    ----
+   CODE SIZE        =   2076    ----
+   CONSTANT SIZE    =     10    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =   ----       7
+   DATA SIZE        =      4      54
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
 
 
-C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
+C51 COMPILATION COMPLETE.  6 WARNING(S),  0 ERROR(S)
