@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -23,722 +23,764 @@ line level    source
   14          2021-01-19 migation to the school controller
   15          
   16          *****************************************************************************/
-  17          /******************* Text im Quelltext einbinden *********************/
+  17          /******************* Text im Quelltext einbinden **********************/
   18          #include "REG517A.h"
   19          
-  20          /*************************** Konstanten ******************************/
+  20          /*************************** Konstanten *******************************/
   21          
   22          
-  23          /*********************** globale Variablen ***************************/
+  23          /*********************** globale Variablen ****************************/
   24          // Zähler zum Speichern von Zeit; Einheit in ms [max 1000ms]
   25          unsigned int timer = 0;
   26          
-  27          /************************** Prototypen *******************************/
-  28          
-  29          // Konfiguration des Board
-  30          // Arduino Mega = 0x00 und REG517A = 0x01
-  31          //#define BOARD 0x00
-  32          
+  27          
+  28          /************************** Definitionen ******************************/
+  29          // REG517A specific
+  30          #define maxNumber 9999
+  31          
+  32          /************************** Prototypen ********************************/
   33          char readButtonMatrix(char maxRows, char maxColumns);
   34          void display(char number, char segment);
   35          char index2number(char index);
   36          char getNumber(int numbers, char index);
   37          int fixPotenz(char potenz);
-  38          //ISR(TIMER0_COMPA_vect);
-  39          
-  40          
-  41          /*
-  42           * Friedjof Noweck
-  43           * 2022-01-25 Di
-  44           * 
-  45           * +-------------------------------------------------------------------+
-  46           * | Anleitung:                                                        |
-  47           * |  Der Controller starte im Editier-Modus. Erkennbar auch an dem    |
-  48           * |  blickenden Cursor. Hier können Zahlen über die Matrixtastatur    |
-  49           * |  gesetzt werden. Der Cursor wandert nach rechts weiter.           |
-  50           * |  Alternativ kann auch über die Button-Matrix eine exakte Position |
-  51           * |  festgelegt werden (A 1000er, B 100er, C 10er, D 1er). Auch kann  |
-  52           * |  die Zahl in dem Editor Modus per Inkrementalgeber hoch bzw.      |
-  53           * |  runtergeregelt werden. Der Cursor wird hierbei nicht beachtet.   |
-  54           * |                                                                   |
-  55           * |  Durch das Drücken von dem rechten Taster wird der Zähler         |
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 2   
+  38          void IRQ_Timer0();
+  39          // Arduino Mega specific
+  40          //ISR(TIMER0_COMPA_vect);
+  41          
+  42          /*
+  43           * Friedjof Noweck
+  44           * 2022-01-25 Di
+  45           * 
+  46           * +-------------------------------------------------------------------+
+  47           * | Anleitung:                                                        |
+  48           * |  Der Controller starte im Editier-Modus. Erkennbar auch an dem    |
+  49           * |  blickenden Cursor. Hier können Zahlen über die Matrixtastatur    |
+  50           * |  gesetzt werden. Der Cursor wandert nach rechts weiter.           |
+  51           * |  Alternativ kann auch über die Button-Matrix eine exakte Position |
+  52           * |  festgelegt werden (A 1000er, B 100er, C 10er, D 1er). Auch kann  |
+  53           * |  die Zahl in dem Editor Modus per Inkrementalgeber hoch bzw.      |
+  54           * |  runtergeregelt werden. Der Cursor wird hierbei nicht beachtet.   |
+  55           * |                                                                   |
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 2   
 
-  56           * |  gestartet. Die Richtung kann auch umgekehrt werden mit dem       |
-  57           * |  linken Taster. Durch das erneute Drücken auf den rechten Taster  |
-  58           * |  wird der Zähler wieder angehalten und der Editiermodus           |
-  59           * |  gestartet. Beim laufenden Zähler ist die Button-Matrix           |
-  60           * |  deaktiviert.                                                     |
-  61           * |                                                                   |
-  62           * |  Die Zählgeschwindigkeit kann geändert werden, indem der          |
-  63           * |  Inkrementalgeber beim laufenden Zähler hoch bzw. runtergeregelt  |
-  64           * |  wird.                                                            |
-  65           * |                                                                   |
-  66           * |  Durch das Drücken auf den Inkrementalgeber wird der Timer Modus  |
-  67           * |  aktiviert. Dies bedeutet, dass bei dem Wert 0 angehalten wird    |
-  68           * |  und das Display aufblickt. Dieser Modus wird deaktiviert, wenn   |
-  69           * |  während des Blickens eine der beiden anderen Taster gedrückt     |
-  70           * |  wird. Durch erneutes Drücken wird dieser Modus ebenfalls wieder  |
-  71           * |  deaktiviert.                                                     |
-  72           * +-------------------------------------------------------------------+
-  73           * | PINBELEGUNG                                                       |
-  74           * +------------------------------+--------------------+---------------+
-  75           * | Elemente                     |    Arduino Mega    |    REG517A    |
-  76           * |                              |   Ports      Pins  |               |
-  77           * +------------------------------+-----------+--------+---------------+
-  78           * | ● 4x4 Taster Matrix          |           |        |               |
-  79           * |   ⸰ ROWS                     | PORTA.0-3 | D22-25 | P6.4-7        |
-  80           * |   ⸰ COLUMNS                  | PORTA.4-7 | D26-29 | P8.0-3        |
-  81           * | ● 4x 7 Segment Anzeigen      |           |        |               |
-  82           * |   ⸰ Segmente                 | PORTL.0-7 | D42-49 | P4.0-7        |
-  83           * |   ⸰ Anzeigen                 | PORTB.0-3 | D50-53 | P6.4-7        |
-  84           * | ● 2x Taster                  |           |        |               |
-  85           * |   ⸰ Start/Stopp              | PORTG.0   | D41    | P5.0          |
-  86           * |   ⸰ Richtungswechsel         | PORTG.1   | D40    | P6.0          |
-  87           * | ● Inkrementalgeber           |           |        |               |
-  88           * |   ⸰ Taster                   | PORTF.2   | A2     | P3.4          |
-  89           * |   ⸰ Inkrementalgeber Takt    | PORTF.0-1 | A0-1   | P3.3&5        |
-  90           * +------------------------------+-----------+--------+---------------+
-  91           * | Quellen:                                                          |
-  92           * | ● Timer beim Arduino                                              |
-  93           * |   ⸰ https://www.exp-tech.de/blog/arduino-tutorial-timer           |
-  94           * | ● Arduino Mega Ports                                              |
-  95           * |   ⸰ https://aws1.discourse-cdn.com/arduino/original/4X/6/f/b/6fb6102c3ff917a32b3fabaa7b01c72fb20891
+  56           * |  Durch das Drücken von dem rechten Taster wird der Zähler         |
+  57           * |  gestartet. Die Richtung kann auch umgekehrt werden mit dem       |
+  58           * |  linken Taster. Durch das erneute Drücken auf den rechten Taster  |
+  59           * |  wird der Zähler wieder angehalten und der Editiermodus           |
+  60           * |  gestartet. Beim laufenden Zähler ist die Button-Matrix           |
+  61           * |  deaktiviert.                                                     |
+  62           * |                                                                   |
+  63           * |  Die Zählgeschwindigkeit kann geändert werden, indem der          |
+  64           * |  Inkrementalgeber beim laufenden Zähler hoch bzw. runtergeregelt  |
+  65           * |  wird.                                                            |
+  66           * |                                                                   |
+  67           * |  Durch das Drücken auf den Inkrementalgeber wird der Timer Modus  |
+  68           * |  aktiviert. Dies bedeutet, dass bei dem Wert 0 angehalten wird    |
+  69           * |  und das Display aufblickt. Dieser Modus wird deaktiviert, wenn   |
+  70           * |  während des Blickens eine der beiden anderen Taster gedrückt     |
+  71           * |  wird. Durch erneutes Drücken wird dieser Modus ebenfalls wieder  |
+  72           * |  deaktiviert.                                                     |
+  73           * +-------------------------------------------------------------------+
+  74           * | PINBELEGUNG                                                       |
+  75           * +------------------------------+--------------------+---------------+
+  76           * | Elemente                     |    Arduino Mega    |    REG517A    |
+  77           * |                              |   Ports      Pins  |               |
+  78           * +------------------------------+-----------+--------+---------------+
+  79           * | ● 4x4 Taster Matrix          |           |        |               |
+  80           * |   ⸰ ROWS                     | PORTA.0-3 | D22-25 | P6.4-7        |
+  81           * |   ⸰ COLUMNS                  | PORTA.4-7 | D26-29 | P8.0-3        |
+  82           * | ● 4x 7 Segment Anzeigen      |           |        |               |
+  83           * |   ⸰ Segmente                 | PORTL.0-7 | D42-49 | P4.0-7        |
+  84           * |   ⸰ Anzeigen                 | PORTB.0-3 | D50-53 | P6.4-7        |
+  85           * | ● 2x Taster                  |           |        |               |
+  86           * |   ⸰ Start/Stopp              | PORTG.0   | D41    | P5.0          |
+  87           * |   ⸰ Richtungswechsel         | PORTG.1   | D40    | P6.0          |
+  88           * | ● Inkrementalgeber           |           |        |               |
+  89           * |   ⸰ Taster                   | PORTF.2   | A2     | P3.4          |
+  90           * |   ⸰ Inkrementalgeber Takt    | PORTF.0-1 | A0-1   | P3.3&5        |
+  91           * +------------------------------+-----------+--------+---------------+
+  92           * | Quellen:                                                          |
+  93           * | ● Timer beim Arduino                                              |
+  94           * |   ⸰ https://www.exp-tech.de/blog/arduino-tutorial-timer           |
+  95           * | ● Arduino Mega Ports                                              |
+  96           * |   ⸰ https://aws1.discourse-cdn.com/arduino/original/4X/6/f/b/6fb6102c3ff917a32b3fabaa7b01c72fb20891
              -9e.png
-  96           * | ● Port Adressierung beim Arduino:                                 |
-  97           * |   ⸰ https://hartmut-waller.info/arduinoblog/leds-schalten-port-ddr/
-  98           * +-------------------------------------------------------------------+
-  99           * 
- 100           */
- 101          
+  97           * | ● Port Adressierung beim Arduino:                                 |
+  98           * |   ⸰ https://hartmut-waller.info/arduinoblog/leds-schalten-port-ddr/
+  99           * +-------------------------------------------------------------------+
+ 100           * 
+ 101           */
  102          
- 103          void setup()
- 104          {
- 105   1          // Konstanten
- 106   1          // Die Anzahl an vorliegenden 7-Segment-Anzeigen
- 107   1          const char nrOfSegments = 0x04;
- 108   1          // Die maximal anzuzeigende Zahl
- 109   1          const short maxNumber = 9999;
- 110   1      
- 111   1          // Speed - Die Zählgeschwindigkeit in ms
- 112   1          char speed = 0x05;
- 113   1      
- 114   1          // Speicherung des letzten ermittelten Button Matrix Indexes [0 - 16, 0 = nichts gedrückt]
- 115   1          char currentButtonState = 0x00;
- 116   1      
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 3   
+ 103          
+ 104          // Arduino Mega specific
+ 105          //void setup()
+ 106          void main()
+ 107          {
+ 108   1          // Konstanten
+ 109   1          // Die Anzahl an vorliegenden 7-Segment-Anzeigen
+ 110   1          const char nrOfSegments = 0x04;
+ 111   1          // Die maximal anzuzeigende Zahl
+ 112   1          // Arduino Mega specific
+ 113   1          //const short maxNumber = 9999;
+ 114   1      
+ 115   1          // Speed - Die Zählgeschwindigkeit in ms
+ 116   1          char speed = 0x05;
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 3   
 
- 117   1          // Speicherung des gerade ermittelten Button Matrix Indexes [0 - 16, 0 = nichts gedrückt]
- 118   1          char matrixResult = 0x00;
- 119   1      
- 120   1          // Speichert den Zeitpunkt der letzten Ermittlung des Button Matrix Indexes in ms
- 121   1          int buttonTimeout = timer;
- 122   1      
- 123   1          // Display Variables
- 124   1          // Speichert den Index der aktuell anzuzeigenden 7-Segment-Anzeige
- 125   1          char segmentCounter = 0x00;
- 126   1          // Speichert den Zeitpunkt der letzten Aktualisierung des Indexes der aktuell anzuzeigenden 7-Segment-
+ 117   1      
+ 118   1          // Speicherung des letzten ermittelten Button Matrix Indexes [0 - 16, 0 = nichts gedrückt]
+ 119   1          char currentButtonState = 0x00;
+ 120   1      
+ 121   1          // Speicherung des gerade ermittelten Button Matrix Indexes [0 - 16, 0 = nichts gedrückt]
+ 122   1          char matrixResult = 0x00;
+ 123   1      
+ 124   1          // Speichert den Zeitpunkt der letzten Ermittlung des Button Matrix Indexes in ms
+ 125   1          short buttonTimeout = timer;
+ 126   1      
+ 127   1          // Display Variables
+ 128   1          // Speichert den Index der aktuell anzuzeigenden 7-Segment-Anzeige
+ 129   1          char segmentCounter = 0x00;
+ 130   1          // Speichert den Zeitpunkt der letzten Aktualisierung des Indexes der aktuell anzuzeigenden 7-Segment-
              -Anzeige in ms
- 127   1          int segmentCounterTimer = timer;
- 128   1          // Speichert den aktuellen Zählerwert
- 129   1          int number2display = 0;
- 130   1          // Speichert den Zeitpunkt der letzten Aktualisierung des Zählerwertes
- 131   1          int counterTimer = timer;
- 132   1          // Speichert die Ziffer des aktuellen Segments
- 133   1          char number = 0x00;
- 134   1          // Speichert die Konfiguration der einzelnen Ziffern auf der 7-Segment-Anzeige (beginnend bei 0x3F = 0
+ 131   1          short segmentCounterTimer = timer;
+ 132   1          // Speichert den aktuellen Zählerwert
+ 133   1          short number2display = 0;
+ 134   1          // Speichert den Zeitpunkt der letzten Aktualisierung des Zählerwertes
+ 135   1          short counterTimer = timer;
+ 136   1          // Speichert die Ziffer des aktuellen Segments
+ 137   1          char number = 0x00;
+ 138   1          // Speichert die Konfiguration der einzelnen Ziffern auf der 7-Segment-Anzeige (beginnend bei 0x3F = 0
              -)
- 135   1          // > So könne einstellige Zahlen einfach der Ziffern Konfiguration der 7-Segment-Anzeigen zugeordnet 
+ 139   1          // > So könne einstellige Zahlen einfach der Ziffern Konfiguration der 7-Segment-Anzeigen zugeordnet 
              -werden. 
- 136   1          unsigned char segments[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
- 137   1      
- 138   1          // Speichert die aktuellen Curor Position ab
- 139   1          // > Ab Start liegt der Wert auf der ganz linken 7-Segment-Anzeige.
- 140   1          unsigned char cursor = nrOfSegments - 0x01;
+ 140   1          unsigned char segments[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
  141   1      
- 142   1          // Speichert folgende wichtige Werte:
- 143   1          // { Timer Mode , IG Button , CIG02 , CIG01 , Richtung , Start/Stop , Richtung Button , Start/Stop But
+ 142   1          // Speichert die aktuellen Curor Position ab
+ 143   1          // > Ab Start liegt der Wert auf der ganz linken 7-Segment-Anzeige.
+ 144   1          unsigned char cursor = nrOfSegments - 0x01;
+ 145   1      
+ 146   1          // Speichert folgende wichtige Werte:
+ 147   1          // { Timer Mode , IG Button , CIG02 , CIG01 , Richtung , Start/Stop , Richtung Button , Start/Stop But
              -ton }
- 144   1          unsigned char specialButtons = 0x40;
- 145   1          // Dient als temporärer Zwischenspeicher der ermitteten Werte
- 146   1          unsigned char specialButtonsResult = 0x00;
- 147   1      
- 148   1          // Set pin modes
- 149   1          // 4x4 Button Matrix
- 150   1          // > Ersten 4 als 'OUTPUT', letzten 4 als 'INPUT'
- 151   1          //DDRA = 0x0F0;
- 152   1      
- 153   1          // 4x 7 Segment Anzeigen
- 154   1          // > Ersten 4 als 'INPUT', letzten 4 als 'OUTPUT'
- 155   1          //DDRB = 0x0F;
- 156   1          // Segments - Definiert alle Pins des Ports als 'OUTPUT'
- 157   1          //DDRL = 0x0FF;
- 158   1      
- 159   1          // Special Buttons
- 160   1          // Setzt die ersten zwei Pins dieses Ports als 'INPUTS', die anderen Pins werden als 'OUTPUT' definiert
- 161   1          //DDRG = 0x0FC;
+ 148   1          unsigned char specialButtons = 0x40;
+ 149   1          // Dient als temporärer Zwischenspeicher der ermitteten Werte
+ 150   1          unsigned char specialButtonsResult = 0x00;
+ 151   1      
+ 152   1          // Set pin modes
+ 153   1          // 4x4 Button Matrix
+ 154   1          // > Ersten 4 als 'OUTPUT', letzten 4 als 'INPUT'
+ 155   1          //DDRA = 0x0F0;
+ 156   1      
+ 157   1          // 4x 7 Segment Anzeigen
+ 158   1          // > Ersten 4 als 'INPUT', letzten 4 als 'OUTPUT'
+ 159   1          //DDRB = 0x0F;
+ 160   1          // Segments - Definiert alle Pins des Ports als 'OUTPUT'
+ 161   1          //DDRL = 0x0FF;
  162   1      
- 163   1          // Inkrementalgeber
- 164   1          // Setzt die ersten drei Pins dieses Ports als 'INPUTS', die anderen Pins werden als 'OUTPUT' definiert
- 165   1          //DDRF = 0x0F8;
+ 163   1          // Special Buttons
+ 164   1          // Setzt die ersten zwei Pins dieses Ports als 'INPUTS', die anderen Pins werden als 'OUTPUT' definiert
+ 165   1          //DDRG = 0x0FC;
  166   1      
- 167   1          // Timer Setup
- 168   1          // Setzen des CTC Moduses
- 169   1          // Arduino Mega specific
- 170   1          //TCCR0A = (1 << WGM01);
- 171   1          // Setzt den Startwert des Timers
- 172   1          // > Durch den Startwert von 0x0F9 beträgt ein Druchlauf genau eine ms
+ 167   1          // Inkrementalgeber
+ 168   1          // Setzt die ersten drei Pins dieses Ports als 'INPUTS', die anderen Pins werden als 'OUTPUT' definiert
+ 169   1          //DDRF = 0x0F8;
+ 170   1      
+ 171   1          // Timer Setup
+ 172   1          // Setzen des CTC Moduses
  173   1          // Arduino Mega specific
- 174   1          //OCR0A = 0x0F9;
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 4   
+ 174   1          //TCCR0A = (1 << WGM01);
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 4   
 
- 175   1          
- 176   1          // Setzen der Interrupt Anfrage
+ 175   1          // Setzt den Startwert des Timers
+ 176   1          // > Durch den Startwert von 0x0F9 beträgt ein Druchlauf genau eine ms
  177   1          // Arduino Mega specific
- 178   1          //TIMSK0 |= (1 << OCIE0A);
- 179   1          // Aktiviert den Interrupt
- 180   1          // Arduino Mega specific
- 181   1          //sei();
- 182   1          
- 183   1          // Setzen der Skalierung von 1 zu 64
- 184   1          // Somit wird ist der Timer 64 so langsam wie standartmäßig vorgegeben
- 185   1          // Arduino Mega specific
- 186   1          //TCCR0B |= (1 << CS01);
- 187   1          // Arduino Mega specific
- 188   1          //TCCR0B |= (1 << CS00);
- 189   1      
- 190   1          while (1)
- 191   1          {
- 192   2              // Wenn die vergangene Zeit seit der letzten Abfrage der seperaten Taster, sowie der Button Matrix
+ 178   1          //OCR0A = 0x0F9;
+ 179   1          
+ 180   1          // Setzen der Interrupt Anfrage
+ 181   1          // Arduino Mega specific
+ 182   1          //TIMSK0 |= (1 << OCIE0A);
+ 183   1          // Aktiviert den Interrupt
+ 184   1          // Arduino Mega specific
+ 185   1          //sei();
+ 186   1          
+ 187   1          // Setzen der Skalierung von 1 zu 64
+ 188   1          // Somit wird ist der Timer 64 so langsam wie standartmäßig vorgegeben
+ 189   1          // Arduino Mega specific
+ 190   1          //TCCR0B |= (1 << CS01);
+ 191   1          // Arduino Mega specific
+ 192   1          //TCCR0B |= (1 << CS00);
+ 193   1          
+ 194   1          // Timer0 konfigurieren
+ 195   1          // ausgeschaltet
+ 196   1          TR0 = 0;
+ 197   1          // Überlauf zurückgesetzt
+ 198   1          TF0 = 0;
+ 199   1          // IR gelöscht
+ 200   1          IT0 = 0;
+ 201   1          // Timer1: Timer, 8bit prescale, Timer0: Timer, 16bit
+ 202   1          TMOD = 0x01;
+ 203   1          // Startwert 55535 -> 0x3CAF
+ 204   1          // 10000 = 1ms
+ 205   1          TL0 = 0xD8;
+ 206   1          TH0 = 0xEF;
+ 207   1          
+ 208   1          // IR System konfigurieren
+ 209   1          // IR für Timer0 aktiv
+ 210   1          ET0 = 1;
+ 211   1          // Alles aus
+ 212   1          EAL = 0;
+ 213   1      
+ 214   1          while (1)
+ 215   1          {
+ 216   2              // Interrupts aktivieren
+ 217   2              EAL = 1;
+ 218   2              // Timer0 aktiv
+ 219   2              TR0 = 1;
+ 220   2            
+ 221   2              // Wenn die vergangene Zeit seit der letzten Abfrage der seperaten Taster, sowie der Button Matrix
              - größer 50ms:
- 193   2              if (timer - buttonTimeout > 50)
- 194   2              {
- 195   3                  // Abfrage der beiden seperaten Taster
- 196   3                  // Arduino Mega specific
- 197   3                  //specialButtonsResult = PING & 0x03;
- 198   3                  specialButtonsResult = (P5 & 0x01) + ((P6 & 0x01) << 0x01);
- 199   3      
- 200   3                  // Wenn Zähler nicht aktiv:
- 201   3                  if ((0x01 ^ ((specialButtons & 0x04) >> 0x02)))
- 202   3                  {
- 203   4                      // Matrix abfragen
- 204   4                      matrixResult = readButtonMatrix(4, 4);
- 205   4                  }
- 206   3                  else
- 207   3                  { }
- 208   3      
- 209   3                  // Wenn eine Veränderung an den beiden seperaten Tastern vorliegt:
- 210   3                  if (0x01 ^ ((((specialButtonsResult & 0x02) >> 0x01) & (specialButtonsResult & 0x01)) & (((spe
+ 222   2              if (timer - buttonTimeout > 50)
+ 223   2              {
+ 224   3                  // Abfrage der beiden seperaten Taster
+ 225   3                  // Arduino Mega specific
+ 226   3                  //specialButtonsResult = PING & 0x03;
+ 227   3                  specialButtonsResult = (P5 & 0x01) + ((P6 & 0x01) << 0x01);
+ 228   3      
+ 229   3                  // Wenn Zähler nicht aktiv:
+ 230   3                  if ((0x01 ^ ((specialButtons & 0x04) >> 0x02)))
+ 231   3                  {
+ 232   4                      // Matrix abfragen
+ 233   4                      matrixResult = readButtonMatrix(4, 4);
+ 234   4                  }
+ 235   3                  else
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 5   
+
+ 236   3                  { }
+ 237   3      
+ 238   3                  // Wenn eine Veränderung an den beiden seperaten Tastern vorliegt:
+ 239   3                  if (0x01 ^ ((((specialButtonsResult & 0x02) >> 0x01) & (specialButtonsResult & 0x01)) & (((spe
              -cialButtons & 0x02) >> 0x01) & (specialButtons & 0x01))))
- 211   3                  {
- 212   4                      // Wenn sich der rechte Taster verändert hat:
- 213   4                      if ((specialButtons & 0x01) ^ (specialButtonsResult & 0x01))
- 214   4                      {
- 215   5                          // Aktualisiere das gespeichert Bit
- 216   5                          specialButtons = (specialButtons & (0x0FE | (specialButtonsResult & 0x01))) | (0x01 & 
+ 240   3                  {
+ 241   4                      // Wenn sich der rechte Taster verändert hat:
+ 242   4                      if ((specialButtons & 0x01) ^ (specialButtonsResult & 0x01))
+ 243   4                      {
+ 244   5                          // Aktualisiere das gespeichert Bit
+ 245   5                          specialButtons = (specialButtons & (0x0FE | (specialButtonsResult & 0x01))) | (0x01 & 
              -(specialButtonsResult & 0x01));
- 217   5      
- 218   5                          // Wenn ansteigende Flanke:
- 219   5                          if (0x01 ^ (specialButtons & 0x01))
- 220   5                          {
- 221   6                              // Drehe das stop/start Bit um
- 222   6                              specialButtons = (specialButtons & (0x0FB | (0x04 ^ (specialButtons & 0x04)))) | (
+ 246   5      
+ 247   5                          // Wenn ansteigende Flanke:
+ 248   5                          if (0x01 ^ (specialButtons & 0x01))
+ 249   5                          {
+ 250   6                              // Drehe das stop/start Bit um
+ 251   6                              specialButtons = (specialButtons & (0x0FB | (0x04 ^ (specialButtons & 0x04)))) | (
              -0x04 & (0x04 ^ (specialButtons & 0x04)));
- 223   6      
- 224   6                              // Setze der Cursor ab die ganz linke Position
- 225   6                              cursor = nrOfSegments - 0x01;
- 226   6      
- 227   6                              // Wenn Timer Mode an ist und der wert auf dem Display 0 ist (kurz: wenn das Displ
+ 252   6      
+ 253   6                              // Setze der Cursor ab die ganz linke Position
+ 254   6                              cursor = nrOfSegments - 0x01;
+ 255   6      
+ 256   6                              // Wenn Timer Mode an ist und der wert auf dem Display 0 ist (kurz: wenn das Displ
              -ay Blickt):
- 228   6                              if ((specialButtons & 0x80) >> 0x07 && number2display == 0)
- 229   6                              {
- 230   7                                  // Timer Modus Bit löschen
- 231   7                                  specialButtons = specialButtons & 0x7F;
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 5   
-
- 232   7                              }
- 233   6                              else
- 234   6                              { }
- 235   6                          }
- 236   5                          else
- 237   5                          { }
- 238   5                      }
- 239   4                      else
- 240   4                      { }
- 241   4      
- 242   4                      // Wenn sich etwas am linken Taster verändert hat:
- 243   4                      if (((specialButtons & 0x02) >> 0x01) ^ ((specialButtonsResult & 0x02) >> 0x01))
- 244   4                      {
- 245   5                          // Aktualisiere das gespeichter Bit
- 246   5                          specialButtons = (specialButtons & (0x0FD | (specialButtonsResult & 0x02))) | (0x02 & 
+ 257   6                              if ((specialButtons & 0x80) >> 0x07 && number2display == 0)
+ 258   6                              {
+ 259   7                                  // Timer Modus Bit löschen
+ 260   7                                  specialButtons = specialButtons & 0x7F;
+ 261   7                              }
+ 262   6                              else
+ 263   6                              { }
+ 264   6                          }
+ 265   5                          else
+ 266   5                          { }
+ 267   5                      }
+ 268   4                      else
+ 269   4                      { }
+ 270   4      
+ 271   4                      // Wenn sich etwas am linken Taster verändert hat:
+ 272   4                      if (((specialButtons & 0x02) >> 0x01) ^ ((specialButtonsResult & 0x02) >> 0x01))
+ 273   4                      {
+ 274   5                          // Aktualisiere das gespeichter Bit
+ 275   5                          specialButtons = (specialButtons & (0x0FD | (specialButtonsResult & 0x02))) | (0x02 & 
              -(specialButtonsResult & 0x02));
- 247   5      
- 248   5                          // Wenn ansteigende Flanke:
- 249   5                          if (0x02 ^ (specialButtons & 0x02))
- 250   5                          {
- 251   6                              // Drehe das richtungs Bit um
- 252   6                              specialButtons = (specialButtons & (0x0F7 | (0x08 ^ (specialButtons & 0x08)))) | (
+ 276   5      
+ 277   5                          // Wenn ansteigende Flanke:
+ 278   5                          if (0x02 ^ (specialButtons & 0x02))
+ 279   5                          {
+ 280   6                              // Drehe das richtungs Bit um
+ 281   6                              specialButtons = (specialButtons & (0x0F7 | (0x08 ^ (specialButtons & 0x08)))) | (
              -0x08 & (0x08 ^ (specialButtons & 0x08)));
- 253   6      
- 254   6                              // Wenn Timer Mode an ist und der wert auf dem Display 0 ist (kurz: wenn das Displ
+ 282   6      
+ 283   6                              // Wenn Timer Mode an ist und der wert auf dem Display 0 ist (kurz: wenn das Displ
              -ay Blickt):
- 255   6                              if ((specialButtons & 0x80) >> 0x07 && number2display == 0)
- 256   6                              {
- 257   7                                  // Timer Modus Bit löschen
- 258   7                                  specialButtons = specialButtons & 0x7F;
- 259   7                              }
- 260   6                              else
- 261   6                              { }
- 262   6                          }
- 263   5                          else
- 264   5                          { }
- 265   5                      }
- 266   4                      else
- 267   4                      { }
- 268   4                  }
- 269   3      
- 270   3                  // Wenn ein Taster der Matrix Tastatur gedrückt wurde und sich der Zustand geändert hat:
- 271   3                  if (matrixResult && (currentButtonState ^ matrixResult))
- 272   3                  {
- 273   4                      // Neuen Matrix-Tastatur-Status setzen 
- 274   4                      currentButtonState = matrixResult;
- 275   4      
- 276   4                      // Versetzen des Cursors
- 277   4                      // Wenn A gedrückt:
- 278   4                      if (currentButtonState == 0x01)
- 279   4                      {
- 280   5                          // Setze Cursor auf 1000er Stelle
- 281   5                          cursor = nrOfSegments - 0x04;
- 282   5                      }
- 283   4                      // Sonst wenn B gedrückt:
- 284   4                      else if (currentButtonState == 0x05)
- 285   4                      {
- 286   5                          // Setze Cursor auf 100er Stelle
- 287   5                          cursor = nrOfSegments - 0x03;
- 288   5                      }
- 289   4                      // Sonst wenn C gedrückt:
- 290   4                      else if (currentButtonState == 0x09)
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 6   
+ 284   6                              if ((specialButtons & 0x80) >> 0x07 && number2display == 0)
+ 285   6                              {
+ 286   7                                  // Timer Modus Bit löschen
+ 287   7                                  specialButtons = specialButtons & 0x7F;
+ 288   7                              }
+ 289   6                              else
+ 290   6                              { }
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 6   
 
- 291   4                      {
- 292   5                          // Setze Cursor auf 10er Stelle
- 293   5                          cursor = nrOfSegments - 0x02;
+ 291   6                          }
+ 292   5                          else
+ 293   5                          { }
  294   5                      }
- 295   4                      // Sonst wenn D gedrückt:
- 296   4                      else if (currentButtonState == 0x0D)
- 297   4                      {
- 298   5                          // Setze Cursor auf 1er Stelle
- 299   5                          cursor = nrOfSegments - 0x01;
- 300   5                      }
- 301   4                      // Sonst wenn * gedrückt:
- 302   4                      else if (currentButtonState == 0x04)
- 303   4                      { }
- 304   4                      // Sonst wenn # gedrückt:
- 305   4                      else if (currentButtonState == 0x02)
- 306   4                      { }
- 307   4                      // Andernfalls bei einer anderen Taste:
- 308   4                      else
- 309   4                      {
- 310   5                          // Ziehe die Zahl des Cursor von der angezeigten Zahl ab
- 311   5                          number2display -= getNumber(number2display, cursor + 0x01) * fixPotenz(cursor);
- 312   5                          // Füge die gedrückte Zahl auf der Matrix Tastatur an die Stelle des Cursors ein 
- 313   5                          number2display += index2number(currentButtonState) * fixPotenz(cursor);
- 314   5      
- 315   5                          // Wenn der Cursor größer ist als 0:
- 316   5                          if (cursor > 0)
- 317   5                          {
- 318   6                              // Versetze den Cursor einen weiter nch rechts
- 319   6                              cursor--;
- 320   6                          }
- 321   5                          else
- 322   5                          {
- 323   6                              // Sonst setze den Cursor wieder nach ganz links
- 324   6                              cursor = nrOfSegments - 0x01;
- 325   6                          }
- 326   5                      }
- 327   4                  }
- 328   3                  // Sonst, wenn keine Taste gedückt, allerdings noch ein anderer Wert außer 0 gespeichert ist
+ 295   4                      else
+ 296   4                      { }
+ 297   4                  }
+ 298   3      
+ 299   3                  // Wenn ein Taster der Matrix Tastatur gedrückt wurde und sich der Zustand geändert hat:
+ 300   3                  if (matrixResult && (currentButtonState ^ matrixResult))
+ 301   3                  {
+ 302   4                      // Neuen Matrix-Tastatur-Status setzen 
+ 303   4                      currentButtonState = matrixResult;
+ 304   4      
+ 305   4                      // Versetzen des Cursors
+ 306   4                      // Wenn A gedrückt:
+ 307   4                      if (currentButtonState == 0x01)
+ 308   4                      {
+ 309   5                          // Setze Cursor auf 1000er Stelle
+ 310   5                          cursor = nrOfSegments - 0x04;
+ 311   5                      }
+ 312   4                      // Sonst wenn B gedrückt:
+ 313   4                      else if (currentButtonState == 0x05)
+ 314   4                      {
+ 315   5                          // Setze Cursor auf 100er Stelle
+ 316   5                          cursor = nrOfSegments - 0x03;
+ 317   5                      }
+ 318   4                      // Sonst wenn C gedrückt:
+ 319   4                      else if (currentButtonState == 0x09)
+ 320   4                      {
+ 321   5                          // Setze Cursor auf 10er Stelle
+ 322   5                          cursor = nrOfSegments - 0x02;
+ 323   5                      }
+ 324   4                      // Sonst wenn D gedrückt:
+ 325   4                      else if (currentButtonState == 0x0D)
+ 326   4                      {
+ 327   5                          // Setze Cursor auf 1er Stelle
+ 328   5                          cursor = nrOfSegments - 0x01;
+ 329   5                      }
+ 330   4                      // Sonst wenn * gedrückt:
+ 331   4                      else if (currentButtonState == 0x04)
+ 332   4                      { }
+ 333   4                      // Sonst wenn # gedrückt:
+ 334   4                      else if (currentButtonState == 0x02)
+ 335   4                      { }
+ 336   4                      // Andernfalls bei einer anderen Taste:
+ 337   4                      else
+ 338   4                      {
+ 339   5                          // Ziehe die Zahl des Cursor von der angezeigten Zahl ab
+ 340   5                          number2display -= getNumber(number2display, cursor + 0x01) * fixPotenz(cursor);
+ 341   5                          // Füge die gedrückte Zahl auf der Matrix Tastatur an die Stelle des Cursors ein 
+ 342   5                          number2display += index2number(currentButtonState) * fixPotenz(cursor);
+ 343   5      
+ 344   5                          // Wenn der Cursor größer ist als 0:
+ 345   5                          if (cursor > 0)
+ 346   5                          {
+ 347   6                              // Versetze den Cursor einen weiter nch rechts
+ 348   6                              cursor--;
+ 349   6                          }
+ 350   5                          else
+ 351   5                          {
+ 352   6                              // Sonst setze den Cursor wieder nach ganz links
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 7   
+
+ 353   6                              cursor = nrOfSegments - 0x01;
+ 354   6                          }
+ 355   5                      }
+ 356   4                  }
+ 357   3                  // Sonst, wenn keine Taste gedückt, allerdings noch ein anderer Wert außer 0 gespeichert ist
              - (kurz: Bei einer fallende Flanke):
- 329   3                  else if (!matrixResult && currentButtonState)
- 330   3                  {
- 331   4                      // Setze den gespeicherten Wert zurück. 
- 332   4                      currentButtonState = 0x00;
- 333   4                  }
- 334   3                  else
- 335   3                  { }
- 336   3      
- 337   3                  // Die Zeit seit dem letzten mal Drücken wird auf "jetzt" gesetzt (aktualisiert)
- 338   3                  buttonTimeout = timer;
- 339   3              }
- 340   2              else
- 341   2              { }
- 342   2      
- 343   2              // Inkrementalgeber auslesen
- 344   2              // Der Port des Inkrementalgebers wird abgefragt
- 345   2              // Arduino Mega specific
- 346   2              //specialButtonsResult = PINF & 0x07;
- 347   2              specialButtonsResult = ((P4 & 0x18) >> 0x02) | ((P4 & 0x20) >> 0x05);
- 348   2      
- 349   2              // Inkrementalgeber Button
- 350   2              // Wenn sich der gespeicherte und der gerade abgefragte Zustand unterschieden:
- 351   2              if ((specialButtonsResult & 0x04) ^ ((specialButtons & 0x40) >> 0x04))
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 7   
-
- 352   2              {
- 353   3                  // Wenn das Bit für den Inkrementalgeber Button gesetzt ist:
- 354   3                  if (specialButtonsResult & 0x04)
- 355   3                  {
- 356   4                      // Wenn der Timer Modus aktiviert ist und der aktuelle Zäjlerwert bei 0 liegt (kurz: Wenn
+ 358   3                  else if (!matrixResult && currentButtonState)
+ 359   3                  {
+ 360   4                      // Setze den gespeicherten Wert zurück. 
+ 361   4                      currentButtonState = 0x00;
+ 362   4                  }
+ 363   3                  else
+ 364   3                  { }
+ 365   3      
+ 366   3                  // Die Zeit seit dem letzten mal Drücken wird auf "jetzt" gesetzt (aktualisiert)
+ 367   3                  buttonTimeout = timer;
+ 368   3              }
+ 369   2              else
+ 370   2              { }
+ 371   2      
+ 372   2              // Inkrementalgeber auslesen
+ 373   2              // Der Port des Inkrementalgebers wird abgefragt
+ 374   2              // Arduino Mega specific
+ 375   2              //specialButtonsResult = PINF & 0x07;
+ 376   2              specialButtonsResult = ((P4 & 0x18) >> 0x02) | ((P4 & 0x20) >> 0x05);
+ 377   2      
+ 378   2              // Inkrementalgeber Button
+ 379   2              // Wenn sich der gespeicherte und der gerade abgefragte Zustand unterschieden:
+ 380   2              if ((specialButtonsResult & 0x04) ^ ((specialButtons & 0x40) >> 0x04))
+ 381   2              {
+ 382   3                  // Wenn das Bit für den Inkrementalgeber Button gesetzt ist:
+ 383   3                  if (specialButtonsResult & 0x04)
+ 384   3                  {
+ 385   4                      // Wenn der Timer Modus aktiviert ist und der aktuelle Zäjlerwert bei 0 liegt (kurz: Wenn
              - das Display blickt):
- 357   4                      if (((specialButtons & 0x80) >> 0x07) && number2display == 0)
- 358   4                      {
- 359   5                          // Setze das Bit für den Richtungs Button auf 1
- 360   5                          specialButtons = specialButtons | 0x04;
- 361   5                      }
- 362   4                      else
- 363   4                      { }
- 364   4      
- 365   4                      // Drehe das Richtungs-Bit um
- 366   4                      specialButtons = (specialButtons & (0x7F | (0x80 ^ (specialButtons & 0x80)))) | (0x80 & (0
+ 386   4                      if (((specialButtons & 0x80) >> 0x07) && number2display == 0)
+ 387   4                      {
+ 388   5                          // Setze das Bit für den Richtungs Button auf 1
+ 389   5                          specialButtons = specialButtons | 0x04;
+ 390   5                      }
+ 391   4                      else
+ 392   4                      { }
+ 393   4      
+ 394   4                      // Drehe das Richtungs-Bit um
+ 395   4                      specialButtons = (specialButtons & (0x7F | (0x80 ^ (specialButtons & 0x80)))) | (0x80 & (0
              -x80 ^ (specialButtons & 0x80)));
- 367   4                  }
- 368   3                  else
- 369   3                  { }
- 370   3      
- 371   3                  // Speichere den aktuellen Wert des Inkrementalgeber Tasters ab
- 372   3                  specialButtons = (specialButtons & (0xBF | ((specialButtonsResult & 0x04) << 0x04))) | (0x40 &
+ 396   4                  }
+ 397   3                  else
+ 398   3                  { }
+ 399   3      
+ 400   3                  // Speichere den aktuellen Wert des Inkrementalgeber Tasters ab
+ 401   3                  specialButtons = (specialButtons & (0xBF | ((specialButtonsResult & 0x04) << 0x04))) | (0x40 &
              - ((specialButtonsResult & 0x04) << 0x04));
- 373   3              }
- 374   2              else
- 375   2              { }
- 376   2      
- 377   2              // Wenn die gespeichten Werte des Inkrementalgebers von den aktuell gemessenen unterscheiden:
- 378   2              if ((specialButtonsResult & 0x03) ^ ((specialButtons & 0x30) >> 0x04))
- 379   2              {
- 380   3                  // Wenn beide gespeicherten Werte auf 1 stehen:
- 381   3                  if ((specialButtons & 0x30) / 0x30)
- 382   3                  {
- 383   4                      // Wenn das erste aktuelle Bit 1 und das zweite aktuelle Bit 0 ist  (bzw. nach rechts gedr
+ 402   3              }
+ 403   2              else
+ 404   2              { }
+ 405   2      
+ 406   2              // Wenn die gespeichten Werte des Inkrementalgebers von den aktuell gemessenen unterscheiden:
+ 407   2              if ((specialButtonsResult & 0x03) ^ ((specialButtons & 0x30) >> 0x04))
+ 408   2              {
+ 409   3                  // Wenn beide gespeicherten Werte auf 1 stehen:
+ 410   3                  if ((specialButtons & 0x30) / 0x30)
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 8   
+
+ 411   3                  {
+ 412   4                      // Wenn das erste aktuelle Bit 1 und das zweite aktuelle Bit 0 ist  (bzw. nach rechts gedr
              -eht wird):
- 384   4                      if ((specialButtonsResult & 0x01) && !((specialButtonsResult & 0x02) >> 0x01))
- 385   4                      {
- 386   5                          // Wenn der Zähler aktuell läuft ist:
- 387   5                          if ((specialButtons & 0x04) >> 0x02)
- 388   5                          {
- 389   6                              // Wenn die Zähl-Gewindigkeit aktuell kleiner oder gleich 64ms ist:
- 390   6                              if ((speed * 2) <= 0x64)
- 391   6                              {
- 392   7                                  // Setze die Zähl-Gewindigkeit auf das doppelte der aktuellen Geschwindigkeit
- 393   7                                  speed *= 2;
- 394   7                              }
- 395   6                              else
- 396   6                              { }
- 397   6                          }
- 398   5                          // Sonst, wenn der Zähler gestoppt ist (bzw. der Editor-Modus aktiv ist):
- 399   5                          else
- 400   5                          {
- 401   6                              // Wenn der aktuelle Zählwert plus 10 nicht den maximalen Zählerwert überschrei
+ 413   4                      if ((specialButtonsResult & 0x01) && !((specialButtonsResult & 0x02) >> 0x01))
+ 414   4                      {
+ 415   5                          // Wenn der Zähler aktuell läuft ist:
+ 416   5                          if ((specialButtons & 0x04) >> 0x02)
+ 417   5                          {
+ 418   6                              // Wenn die Zähl-Gewindigkeit aktuell kleiner oder gleich 64ms ist:
+ 419   6                              if ((speed * 2) <= 0x64)
+ 420   6                              {
+ 421   7                                  // Setze die Zähl-Gewindigkeit auf das doppelte der aktuellen Geschwindigkeit
+ 422   7                                  speed *= 2;
+ 423   7                              }
+ 424   6                              else
+ 425   6                              { }
+ 426   6                          }
+ 427   5                          // Sonst, wenn der Zähler gestoppt ist (bzw. der Editor-Modus aktiv ist):
+ 428   5                          else
+ 429   5                          {
+ 430   6                              // Wenn der aktuelle Zählwert plus 10 nicht den maximalen Zählerwert überschrei
              -tet:
- 402   6                              if ((number2display + 0x0A) <= maxNumber)
- 403   6                              {
- 404   7                                  // Addiere 10 auf den aktuelle Zählerwert drauf
- 405   7                                  number2display += 0x0A;
- 406   7                              }
- 407   6                              // Sonst, wenn aktuelle Zählwert plus 10 den maximalen Zählerwert überschreitet
+ 431   6                              if ((number2display + 0x0A) <= maxNumber)
+ 432   6                              {
+ 433   7                                  // Addiere 10 auf den aktuelle Zählerwert drauf
+ 434   7                                  number2display += 0x0A;
+ 435   7                              }
+ 436   6                              // Sonst, wenn aktuelle Zählwert plus 10 den maximalen Zählerwert überschreitet
              -:
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 8   
-
- 408   6                              else
- 409   6                              {
- 410   7                                  // Setze den Zählerwert wieder auf 0 zurück
- 411   7                                  number2display = 0x00;
- 412   7                              }   
- 413   6                          }
- 414   5                      }
- 415   4                      // Sonst, wenn das erste aktuelle Bit 0 und das zweite aktuelle Bit 1 ist (bzw. nach links
+ 437   6                              else
+ 438   6                              {
+ 439   7                                  // Setze den Zählerwert wieder auf 0 zurück
+ 440   7                                  number2display = 0x00;
+ 441   7                              }   
+ 442   6                          }
+ 443   5                      }
+ 444   4                      // Sonst, wenn das erste aktuelle Bit 0 und das zweite aktuelle Bit 1 ist (bzw. nach links
              - gedreht wird):
- 416   4                      else if (!(specialButtonsResult & 0x01) && ((specialButtonsResult & 0x02) >> 0x01))
- 417   4                      {
- 418   5                          // Wenn der Zähler aktiv ist:
- 419   5                          if ((specialButtons & 0x04) >> 0x02)
- 420   5                          {
- 421   6                              // Wenn die aktuelle Zählgeschwindigkeit größer ist als 1ms:
- 422   6                              if (speed > 0x01)
- 423   6                              {
- 424   7                                  // Halbiere die aktuelle Zählgeschwindigkeit
- 425   7                                  speed /= 2;
- 426   7                              }
- 427   6                              else
- 428   6                              { }
- 429   6                          }
- 430   5                          // Sonst, wenn der Zähler aktuell gestoppt ist (bzw. der Editor Modus aktiv ist):
- 431   5                          else
- 432   5                          {
- 433   6                              // Wenn die aktuell angezeigte Zahl minus 10 die Grenze von 0 nicht unterschreitet
+ 445   4                      else if (!(specialButtonsResult & 0x01) && ((specialButtonsResult & 0x02) >> 0x01))
+ 446   4                      {
+ 447   5                          // Wenn der Zähler aktiv ist:
+ 448   5                          if ((specialButtons & 0x04) >> 0x02)
+ 449   5                          {
+ 450   6                              // Wenn die aktuelle Zählgeschwindigkeit größer ist als 1ms:
+ 451   6                              if (speed > 0x01)
+ 452   6                              {
+ 453   7                                  // Halbiere die aktuelle Zählgeschwindigkeit
+ 454   7                                  speed /= 2;
+ 455   7                              }
+ 456   6                              else
+ 457   6                              { }
+ 458   6                          }
+ 459   5                          // Sonst, wenn der Zähler aktuell gestoppt ist (bzw. der Editor Modus aktiv ist):
+ 460   5                          else
+ 461   5                          {
+ 462   6                              // Wenn die aktuell angezeigte Zahl minus 10 die Grenze von 0 nicht unterschreitet
              -:
- 434   6                              if ((number2display - 0x0A) >= 0x00)
- 435   6                              {
- 436   7                                  // Ziehe von der aktuell angezeigten Zahl 10 ab
- 437   7                                  number2display -= 0x0A;
- 438   7                              }
- 439   6                              // Andernfalls, wenn die aktuell angezeigte Zahl minus 10 die Grenze von 0 untersc
+ 463   6                              if ((number2display - 0x0A) >= 0x00)
+ 464   6                              {
+ 465   7                                  // Ziehe von der aktuell angezeigten Zahl 10 ab
+ 466   7                                  number2display -= 0x0A;
+ 467   7                              }
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 9   
+
+ 468   6                              // Andernfalls, wenn die aktuell angezeigte Zahl minus 10 die Grenze von 0 untersc
              -hreitet:
- 440   6                              else
- 441   6                              {
- 442   7                                  // Setze den Zähler auf die maximale Zahl hoch
- 443   7                                  number2display = maxNumber;
- 444   7                              }
- 445   6                          }
- 446   5                      }
- 447   4                      else
- 448   4                      { }
- 449   4                  }
- 450   3                  else
- 451   3                  { }
- 452   3      
- 453   3                  // Setze den gespeicherten Wert des Inkrementalgebers auf den gerade gemessenen Wert
- 454   3                  specialButtons = (specialButtons & (0xCF | ((specialButtonsResult & 0x03) << 0x04))) | (0x30 &
-             - ((specialButtonsResult & 0x03) << 0x04));
- 455   3              }
- 456   2              else
- 457   2              { }
- 458   2              
- 459   2              // Display
- 460   2              // Extrahiert die Zahl des aktuellen Segments aus der gesamten Zahl und speichert diesen in der Va
-             -riablen 'number'
- 461   2              // Bsp.: number2display = 9876, segmentCounter + 0x01 = 0x02, return => 7
- 462   2              number = getNumber(number2display, segmentCounter + 0x01);
- 463   2      
- 464   2              // Wenn der Timer Modus aktiv ist und der Zählerwert 0 ist:
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 9   
-
- 465   2              if (((specialButtons & 0x80) >> 0x07) && number2display == 0)
- 466   2              {
- 467   3                  // Wenn der Timer größer oder gleich 500ms ist:
- 468   3                  if (timer >= 0x1F4)
- 469   3                  {
- 470   4                      // Zeige die Nummer des aktuellen Segments an
- 471   4                      display(segments[(int)number], (nrOfSegments - 0x01) - segmentCounter);
- 472   4                  }
- 473   3                  // Sonst, wenn der Timer kleiner als 500ms ist:
- 474   3                  else
- 475   3                  {
- 476   4                      // Zeige nichts auf dem aktuellen Segment an
- 477   4                      display(0x00, (nrOfSegments - 0x01) - segmentCounter);
+ 469   6                              else
+ 470   6                              {
+ 471   7                                  // Setze den Zähler auf die maximale Zahl hoch
+ 472   7                                  number2display = maxNumber;
+ 473   7                              }
+ 474   6                          }
+ 475   5                      }
+ 476   4                      else
+ 477   4                      { }
  478   4                  }
- 479   3              }
- 480   2              // Sonst, wenn der Timer Modus nicht aktiv ist und der Zählerwert nicht 0 ist:
- 481   2              else
- 482   2              {
- 483   3                  // Wenn das aktuelle Segment nicht dem aktuellen Werte des Cursors entspricht oder der Editor 
+ 479   3                  else
+ 480   3                  { }
+ 481   3      
+ 482   3                  // Setze den gespeicherten Wert des Inkrementalgebers auf den gerade gemessenen Wert
+ 483   3                  specialButtons = (specialButtons & (0xCF | ((specialButtonsResult & 0x03) << 0x04))) | (0x30 &
+             - ((specialButtonsResult & 0x03) << 0x04));
+ 484   3              }
+ 485   2              else
+ 486   2              { }
+ 487   2              
+ 488   2              // Display
+ 489   2              // Extrahiert die Zahl des aktuellen Segments aus der gesamten Zahl und speichert diesen in der Va
+             -riablen 'number'
+ 490   2              // Bsp.: number2display = 9876, segmentCounter + 0x01 = 0x02, return => 7
+ 491   2              number = getNumber(number2display, segmentCounter + 0x01);
+ 492   2      
+ 493   2              // Wenn der Timer Modus aktiv ist und der Zählerwert 0 ist:
+ 494   2              if (((specialButtons & 0x80) >> 0x07) && number2display == 0)
+ 495   2              {
+ 496   3                  // Wenn der Timer größer oder gleich 500ms ist:
+ 497   3                  if (timer >= 0x1F4)
+ 498   3                  {
+ 499   4                      // Zeige die Nummer des aktuellen Segments an
+ 500   4                      display(segments[(int)number], (nrOfSegments - 0x01) - segmentCounter);
+ 501   4                  }
+ 502   3                  // Sonst, wenn der Timer kleiner als 500ms ist:
+ 503   3                  else
+ 504   3                  {
+ 505   4                      // Zeige nichts auf dem aktuellen Segment an
+ 506   4                      display(0x00, (nrOfSegments - 0x01) - segmentCounter);
+ 507   4                  }
+ 508   3              }
+ 509   2              // Sonst, wenn der Timer Modus nicht aktiv ist und der Zählerwert nicht 0 ist:
+ 510   2              else
+ 511   2              {
+ 512   3                  // Wenn das aktuelle Segment nicht dem aktuellen Werte des Cursors entspricht oder der Editor 
              -Modus nicht aktiv ist:
- 484   3                  if (segmentCounter != cursor || ((specialButtons & 0x04) >> 0x02))
- 485   3                  {
- 486   4                      // Zeige die aktuelle Ziffer auf dem aktuellen Segment an
- 487   4                      display(segments[(int)number], (nrOfSegments - 0x01) - segmentCounter);
- 488   4                  }
- 489   3                  // Sonst, wenn der Timer größer oder gleich 500ms ist:
- 490   3                  else if (timer >= 0x1F4)
- 491   3                  {
- 492   4                      // Zeige die aktuelle Ziffer auf dem aktuellen Segment an
- 493   4                      display(segments[(int)number], (nrOfSegments - 0x01) - segmentCounter);
- 494   4                  }
- 495   3                  // Sonst, wenn der Timer kleiner als 500ms ist und wenn das aktuelle Segment nicht dem aktuell
+ 513   3                  if (segmentCounter != cursor || ((specialButtons & 0x04) >> 0x02))
+ 514   3                  {
+ 515   4                      // Zeige die aktuelle Ziffer auf dem aktuellen Segment an
+ 516   4                      display(segments[(int)number], (nrOfSegments - 0x01) - segmentCounter);
+ 517   4                  }
+ 518   3                  // Sonst, wenn der Timer größer oder gleich 500ms ist:
+ 519   3                  else if (timer >= 0x1F4)
+ 520   3                  {
+ 521   4                      // Zeige die aktuelle Ziffer auf dem aktuellen Segment an
+ 522   4                      display(segments[(int)number], (nrOfSegments - 0x01) - segmentCounter);
+ 523   4                  }
+ 524   3                  // Sonst, wenn der Timer kleiner als 500ms ist und wenn das aktuelle Segment nicht dem aktuell
              -en Werte des Cursors entspricht oder der Editor Modus nicht aktiv ist:
- 496   3                  else
- 497   3                  {
- 498   4                      // Zeige nichts auf dem aktuellen Segment an
- 499   4                      display(0x00, (nrOfSegments - 0x01) - segmentCounter);
- 500   4                  }
- 501   3      
- 502   3                  // Counter defs
- 503   3                  // Wenn die Differenz zwischen der aktuelle und dem letzten Zählvorgang größer oder gleich 
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 10  
+
+ 525   3                  else
+ 526   3                  {
+ 527   4                      // Zeige nichts auf dem aktuellen Segment an
+ 528   4                      display(0x00, (nrOfSegments - 0x01) - segmentCounter);
+ 529   4                  }
+ 530   3      
+ 531   3                  // Counter defs
+ 532   3                  // Wenn die Differenz zwischen der aktuelle und dem letzten Zählvorgang größer oder gleich 
              -der Zählgeschwindigkeit und der Timer aktiv ist:
- 504   3                  if (timer - counterTimer >= (unsigned int)speed && ((specialButtons & 0x04) >> 0x02))
- 505   3                  {
- 506   4                      // Wenn der aktuelle Zählerstand der für die Richtung spezifischen Endzahl entspricht:
- 507   4                      if (number2display == maxNumber * ((((specialButtons & (0x0F7 | (0x08 ^ (specialButtons & 
+ 533   3                  if (timer - counterTimer >= (unsigned int)speed && ((specialButtons & 0x04) >> 0x02))
+ 534   3                  {
+ 535   4                      // Wenn der aktuelle Zählerstand der für die Richtung spezifischen Endzahl entspricht:
+ 536   4                      if (number2display == maxNumber * ((((specialButtons & (0x0F7 | (0x08 ^ (specialButtons & 
              -0x08)))) | (0x08 & (0x08 ^ (specialButtons & 0x08)))) & 0x08) >> 0x03))
- 508   4                      {
- 509   5                          // Setze den Zählerwert auf die für die Richtung spezifischen Startwert zurück
- 510   5                          number2display = maxNumber * ((specialButtons & 0x08) >> 0x03);
- 511   5                      }
- 512   4                      // Sonst, wenn der aktuelle Zählerstand der für die Richtung spezifischen Endzahl nicht 
+ 537   4                      {
+ 538   5                          // Setze den Zählerwert auf die für die Richtung spezifischen Startwert zurück
+ 539   5                          number2display = maxNumber * ((specialButtons & 0x08) >> 0x03);
+ 540   5                      }
+ 541   4                      // Sonst, wenn der aktuelle Zählerstand der für die Richtung spezifischen Endzahl nicht 
              -entspricht:
- 513   4                      else
- 514   4                      {
- 515   5                          // Addiere auf die aktuell angezeigte Zahl den für die Richtung spezifischen Wert (1 
+ 542   4                      else
+ 543   4                      {
+ 544   5                          // Addiere auf die aktuell angezeigte Zahl den für die Richtung spezifischen Wert (1 
              -oder -1) 
- 516   5                          number2display += 1 + ((-2) * ((specialButtons & 0x08) >> 0x03));
- 517   5                      }
- 518   4                      // Speicher den Zeitpunkt der aktuellen Aktualisierung des Zählerwertes ab
- 519   4                      counterTimer = timer;
- 520   4                  }
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 10  
-
- 521   3                  else
- 522   3                  { }
- 523   3              }
- 524   2      
- 525   2              // Wenn die Differenz zwischen der letzten Segment-Aktualisierung und der aktuellen Zeit größer 
-             -oder gleich 5ms ist:
- 526   2              if (timer - segmentCounterTimer >= 0x05)
- 527   2              {
- 528   3                  // Wenn das aktuelle Segment nicht das letzte in der Richtung ist:
- 529   3                  if (segmentCounter < (nrOfSegments - 0x01))
- 530   3                  {
- 531   4                      // Gehe ein Segment weiter
- 532   4                      segmentCounter++;
- 533   4                  }
- 534   3                  // Sonst, wenn das aktuelle Segment das letzte in der Richtung ist:
- 535   3                  else
- 536   3                  {
- 537   4                      // Springe auf das erste zurück
- 538   4                      segmentCounter = 0x00;
- 539   4                  }
- 540   3                  // Speicher die Zeit der letzten Segment-Aktualisierung ab
- 541   3                  segmentCounterTimer = timer;
- 542   3              }
- 543   2              else
- 544   2              { }
- 545   2      
- 546   2              // Wenn der Timer die Zeit von einer Sekunde überschreitet:
- 547   2              if (timer >= 0x3e8)
- 548   2              {
- 549   3                  // Setze den Timer, die Zeit seit der letzten Abfrage der seperaten Taster, sowie der Button M
-             -atrix und
- 550   3                  // die Zeit seit der letzten Segment-Aktualisierung auf 0 zurück.
- 551   3                  timer = buttonTimeout = segmentCounterTimer = 0;
+ 545   5                          number2display += 1 + ((-2) * ((specialButtons & 0x08) >> 0x03));
+ 546   5                      }
+ 547   4                      // Speicher den Zeitpunkt der aktuellen Aktualisierung des Zählerwertes ab
+ 548   4                      counterTimer = timer;
+ 549   4                  }
+ 550   3                  else
+ 551   3                  { }
  552   3              }
- 553   2              else
- 554   2              { }
- 555   2          }
- 556   1      }
- 557          
- 558          void loop()
- 559          { }
- 560          
- 561          
- 562          // This is the interrupt request
- 563          // Addiere nach 1ms 1 auf den Timer
- 564          //ISR(TIMER0_COMPA_vect)
- 565          //{
- 566          //  timer++;
- 567          //}
- 568          
- 569          // Gibt die Zahl an dem gewünschten Index zurück
- 570          // Bsp.: numbers = 1234, index = 4, return => 1
- 571          char getNumber(int numbers, char index)
- 572          {
- 573   1          // Index var
- 574   1          char i = 0x00;
- 575   1          // Zwischenspeicher
- 576   1          char cache = 0;
- 577   1      
- 578   1          for (i = 0x00; i < index; i++)
- 579   1          {
- 580   2              // Gibt den Rest zurück
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 11  
+ 553   2      
+ 554   2              // Wenn die Differenz zwischen der letzten Segment-Aktualisierung und der aktuellen Zeit größer 
+             -oder gleich 5ms ist:
+ 555   2              if (timer - segmentCounterTimer >= 0x05)
+ 556   2              {
+ 557   3                  // Wenn das aktuelle Segment nicht das letzte in der Richtung ist:
+ 558   3                  if (segmentCounter < (nrOfSegments - 0x01))
+ 559   3                  {
+ 560   4                      // Gehe ein Segment weiter
+ 561   4                      segmentCounter++;
+ 562   4                  }
+ 563   3                  // Sonst, wenn das aktuelle Segment das letzte in der Richtung ist:
+ 564   3                  else
+ 565   3                  {
+ 566   4                      // Springe auf das erste zurück
+ 567   4                      segmentCounter = 0x00;
+ 568   4                  }
+ 569   3                  // Speicher die Zeit der letzten Segment-Aktualisierung ab
+ 570   3                  segmentCounterTimer = timer;
+ 571   3              }
+ 572   2              else
+ 573   2              { }
+ 574   2      
+ 575   2              // Wenn der Timer die Zeit von einer Sekunde überschreitet:
+ 576   2              if (timer >= 0x3e8)
+ 577   2              {
+ 578   3                  // Setze den Timer, die Zeit seit der letzten Abfrage der seperaten Taster, sowie der Button M
+             -atrix und
+ 579   3                  // die Zeit seit der letzten Segment-Aktualisierung auf 0 zurück.
+ 580   3                  timer = buttonTimeout = segmentCounterTimer = 0;
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 11  
 
- 581   2              cache = numbers % 10;
- 582   2      
- 583   2              // Teilen durch 10
- 584   2              numbers /= 10;
- 585   2          }
- 586   1      
- 587   1          // Rückgabe der gewünschten Zahl
- 588   1          return cache;
- 589   1      }
+ 581   3              }
+ 582   2              else
+ 583   2              { }
+ 584   2          }
+ 585   1      }
+ 586          
+ 587          //void loop()
+ 588          //{ }
+ 589          
  590          
- 591          // Ließt die Buttton Matrix aus und gibt den INDEX des gedrückten Tasters zurück
- 592          char readButtonMatrix(char maxRows, char maxColumns)
- 593          {
- 594   1          // Zwischenspeicher [LOOPS]
- 595   1          char row = 0;
- 596   1          char column = 0;
- 597   1      
- 598   1          for (row = 0; row < maxRows; row++)
- 599   1          {
- 600   2              // Setzen der Ausgänge (aktiver Eingang auf LOW)
- 601   2              // 0b1110XXXX > 0b1101XXXX > 0b1011 > 0b0111XXXX
- 602   2              //PORTA = 0x0F0 - (0x01 << (row + 0x04));
- 603   2              P6 = (P6 & 0x0F) | (0x0F0 - (0x01 << (row + 0x04)));
- 604   2      
- 605   2              for (column = 0; column < maxColumns; column++)
- 606   2              {
- 607   3                  // Wenn an einem Eingang 0 anliegt
- 608   3                  // Arduino Mega specific
- 609   3                  //if (!((PINA & (0x01 << column)) >> column))
- 610   3                  if (!((P8 & (0x01 << column)) >> column))
- 611   3                  {
- 612   4                      // Gebe den Index des gedrückten Buttons zurück (1 - 16)
- 613   4                      return (maxColumns * row) + column + 0x01;
- 614   4                  }
- 615   3                  else
- 616   3                  { }
- 617   3              }
- 618   2          }
- 619   1      
- 620   1          // Gibt 0x00 zurück, wenn kein Button gedrückt ist.
- 621   1          return 0x00;
- 622   1      }
- 623          
- 624          // Löst den Index der Button Matrix zu Ziffern auf
- 625          char index2number(char index)
- 626          {
- 627   1          switch(index)
- 628   1          {
- 629   2              case 0x03: return 0x00;
- 630   2              case 0x06: return 0x09;
- 631   2              case 0x07: return 0x08;
- 632   2              case 0x08: return 0x07;
- 633   2              case 0x0A: return 0x06;
- 634   2              case 0x0B: return 0x05;
- 635   2              case 0x0C: return 0x04;
- 636   2              case 0x0E: return 0x03;
- 637   2              case 0x0F: return 0x02;
- 638   2              case 0x10: return 0x01;
- 639   2              default: return 0x00;
- 640   2          }
- 641   1      }
- 642          
-C51 COMPILER V9.60.0.0   MAIN                                                              01/29/2022 15:18:17 PAGE 12  
+ 591          // This is the interrupt request
+ 592          // Addiere nach 1ms 1 auf den Timer
+ 593          //ISR(TIMER0_COMPA_vect)
+ 594          //{
+ 595          //  timer++;
+ 596          //}
+ 597          
+ 598          void IRQ_Timer0() interrupt 1
+ 599          {
+ 600   1        TR0 = 0;
+ 601   1        EAL = 0;
+ 602   1        
+ 603   1        timer++;
+ 604   1        
+ 605   1        EAL = 1;
+ 606   1        TR0 = 1;
+ 607   1      }
+ 608          
+ 609          // Gibt die Zahl an dem gewünschten Index zurück
+ 610          // Bsp.: numbers = 1234, index = 4, return => 1
+ 611          char getNumber(int numbers, char index)
+ 612          {
+ 613   1          // Index var
+ 614   1          char i = 0x00;
+ 615   1          // Zwischenspeicher
+ 616   1          char cache = 0;
+ 617   1      
+ 618   1          for (i = 0x00; i < index; i++)
+ 619   1          {
+ 620   2              // Gibt den Rest zurück
+ 621   2              cache = numbers % 10;
+ 622   2      
+ 623   2              // Teilen durch 10
+ 624   2              numbers /= 10;
+ 625   2          }
+ 626   1      
+ 627   1          // Rückgabe der gewünschten Zahl
+ 628   1          return cache;
+ 629   1      }
+ 630          
+ 631          // Ließt die Buttton Matrix aus und gibt den INDEX des gedrückten Tasters zurück
+ 632          char readButtonMatrix(char maxRows, char maxColumns)
+ 633          {
+ 634   1          // Zwischenspeicher [LOOPS]
+ 635   1          char row = 0;
+ 636   1          char column = 0;
+ 637   1      
+ 638   1          for (row = 0; row < maxRows; row++)
+ 639   1          {
+ 640   2              // Setzen der Ausgänge (aktiver Eingang auf LOW)
+ 641   2              // 0b1110XXXX > 0b1101XXXX > 0b1011 > 0b0111XXXX
+ 642   2              //PORTA = 0x0F0 - (0x01 << (row + 0x04));
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 12  
 
- 643          // Setzt die Segment Konfiguration auf das angegebene Segment
- 644          void display(char segmentConfiguration, char segment)
- 645          {
- 646   1          // Setzen der Eingänge
- 647   1          //PORTB = 0x0F - (0x01 << segment);
- 648   1          P6 = P6 | (0x0F - (0x01 << segment));
- 649   1          
- 650   1          // Setzen der einzelnen Segmente
- 651   1          //PORTL = segmentConfiguration;
- 652   1          P4 = segmentConfiguration;
- 653   1      }
- 654          
- 655          // Gibt die angegebenen Potenz zur Basis 10 zurück
- 656          int fixPotenz(char potenz)
- 657          {
- 658   1        // init index
- 659   1        char index = 0x00;
- 660   1        int zwischenergebnis = 1;
- 661   1      
- 662   1        // die Potenz in einer for-Schleife berechnen
- 663   1        for (index = 0; index < potenz; index++)
- 664   1        {
- 665   2          // das Zwischenergebnis wird in der Variablen "zwischenergebnis" gespeichert
- 666   2          zwischenergebnis = zwischenergebnis * 10;
- 667   2        }
- 668   1          return zwischenergebnis;
- 669   1      }
+ 643   2              P6 = (P6 & 0x0F) | (0x0F0 - (0x01 << (row + 0x04)));
+ 644   2      
+ 645   2              for (column = 0; column < maxColumns; column++)
+ 646   2              {
+ 647   3                  // Wenn an einem Eingang 0 anliegt
+ 648   3                  // Arduino Mega specific
+ 649   3                  //if (!((PINA & (0x01 << column)) >> column))
+ 650   3                  if (!((P8 & (0x01 << column)) >> column))
+ 651   3                  {
+ 652   4                      // Gebe den Index des gedrückten Buttons zurück (1 - 16)
+ 653   4                      return (maxColumns * row) + column + 0x01;
+ 654   4                  }
+ 655   3                  else
+ 656   3                  { }
+ 657   3              }
+ 658   2          }
+ 659   1      
+ 660   1          // Gibt 0x00 zurück, wenn kein Button gedrückt ist.
+ 661   1          return 0x00;
+ 662   1      }
+ 663          
+ 664          // Löst den Index der Button Matrix zu Ziffern auf
+ 665          char index2number(char index)
+ 666          {
+ 667   1          switch(index)
+ 668   1          {
+ 669   2              case 0x03: return 0x00;
+ 670   2              case 0x06: return 0x09;
+ 671   2              case 0x07: return 0x08;
+ 672   2              case 0x08: return 0x07;
+ 673   2              case 0x0A: return 0x06;
+ 674   2              case 0x0B: return 0x05;
+ 675   2              case 0x0C: return 0x04;
+ 676   2              case 0x0E: return 0x03;
+ 677   2              case 0x0F: return 0x02;
+ 678   2              case 0x10: return 0x01;
+ 679   2              default: return 0x00;
+ 680   2          }
+ 681   1      }
+ 682          
+ 683          // Setzt die Segment Konfiguration auf das angegebene Segment
+ 684          void display(char segmentConfiguration, char segment)
+ 685          {
+ 686   1          // Setzen der Eingänge
+ 687   1          //PORTB = 0x0F - (0x01 << segment);
+ 688   1          P6 = P6 | (0x0F - (0x01 << segment));
+ 689   1          
+ 690   1          // Setzen der einzelnen Segmente
+ 691   1          //PORTL = segmentConfiguration;
+ 692   1          P4 = segmentConfiguration;
+ 693   1      }
+ 694          
+ 695          // Gibt die angegebenen Potenz zur Basis 10 zurück
+ 696          int fixPotenz(char potenz)
+ 697          {
+ 698   1        // init index
+ 699   1        char index = 0x00;
+ 700   1        int zwischenergebnis = 1;
+ 701   1      
+ 702   1        // die Potenz in einer for-Schleife berechnen
+ 703   1        for (index = 0; index < potenz; index++)
+ 704   1        {
+C51 COMPILER V9.60.0.0   MAIN                                                              02/06/2022 17:07:12 PAGE 13  
+
+ 705   2          // das Zwischenergebnis wird in der Variablen "zwischenergebnis" gespeichert
+ 706   2          zwischenergebnis = zwischenergebnis * 10;
+ 707   2        }
+ 708   1          return zwischenergebnis;
+ 709   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1458    ----
+   CODE SIZE        =   1491    ----
    CONSTANT SIZE    =     10    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      2      33
+   DATA SIZE        =      2      31
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.

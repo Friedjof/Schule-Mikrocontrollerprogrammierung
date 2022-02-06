@@ -24,12 +24,19 @@ Aenderungen:
 // Zähler zum Speichern von Zeit; Einheit in ms [max 1000ms]
 unsigned int timer = 0;
 
+
+/************************** Definitionen ******************************/
+// REG517A specific
+#define maxNumber 9999
+
 /************************** Prototypen ********************************/
 char readButtonMatrix(char maxRows, char maxColumns);
 void display(char number, char segment);
 char index2number(char index);
 char getNumber(int numbers, char index);
 int fixPotenz(char potenz);
+void IRQ_Timer0();
+// Arduino Mega specific
 //ISR(TIMER0_COMPA_vect);
 
 /*
@@ -94,13 +101,16 @@ int fixPotenz(char potenz);
  */
 
 
-void setup()
+// Arduino Mega specific
+//void setup()
+void main()
 {
     // Konstanten
     // Die Anzahl an vorliegenden 7-Segment-Anzeigen
     const char nrOfSegments = 0x04;
     // Die maximal anzuzeigende Zahl
-    const short maxNumber = 9999;
+		// Arduino Mega specific
+    //const short maxNumber = 9999;
 
     // Speed - Die Zählgeschwindigkeit in ms
     char speed = 0x05;
@@ -112,17 +122,17 @@ void setup()
     char matrixResult = 0x00;
 
     // Speichert den Zeitpunkt der letzten Ermittlung des Button Matrix Indexes in ms
-    int buttonTimeout = timer;
+    short buttonTimeout = timer;
 
     // Display Variables
     // Speichert den Index der aktuell anzuzeigenden 7-Segment-Anzeige
     char segmentCounter = 0x00;
     // Speichert den Zeitpunkt der letzten Aktualisierung des Indexes der aktuell anzuzeigenden 7-Segment-Anzeige in ms
-    int segmentCounterTimer = timer;
+    short segmentCounterTimer = timer;
     // Speichert den aktuellen Zählerwert
-    int number2display = 0;
+    short number2display = 0;
     // Speichert den Zeitpunkt der letzten Aktualisierung des Zählerwertes
-    int counterTimer = timer;
+    short counterTimer = timer;
     // Speichert die Ziffer des aktuellen Segments
     char number = 0x00;
     // Speichert die Konfiguration der einzelnen Ziffern auf der 7-Segment-Anzeige (beginnend bei 0x3F = 0)
@@ -180,9 +190,34 @@ void setup()
 		//TCCR0B |= (1 << CS01);
 		// Arduino Mega specific
 		//TCCR0B |= (1 << CS00);
+		
+		// Timer0 konfigurieren
+		// ausgeschaltet
+		TR0 = 0;
+		// Überlauf zurückgesetzt
+		TF0 = 0;
+		// IR gelöscht
+		IT0 = 0;
+		// Timer1: Timer, 8bit prescale, Timer0: Timer, 16bit
+		TMOD = 0x01;
+		// Startwert 55535 -> 0x3CAF
+		// 10000 = 1ms
+		TL0 = 0xD8;
+		TH0 = 0xEF;
+		
+		// IR System konfigurieren
+		// IR für Timer0 aktiv
+		ET0 = 1;
+		// Alles aus
+		EAL = 0;
 
     while (1)
     {
+				// Interrupts aktivieren
+				EAL = 1;
+				// Timer0 aktiv
+				TR0 = 1;
+			
         // Wenn die vergangene Zeit seit der letzten Abfrage der seperaten Taster, sowie der Button Matrix größer 50ms:
         if (timer - buttonTimeout > 50)
         {
@@ -549,8 +584,8 @@ void setup()
     }
 }
 
-void loop()
-{ }
+//void loop()
+//{ }
 
 
 // This is the interrupt request
@@ -559,6 +594,17 @@ void loop()
 //{
 //  timer++;
 //}
+
+void IRQ_Timer0() interrupt 1
+{
+	TR0 = 0;
+	EAL = 0;
+	
+	timer++;
+	
+	EAL = 1;
+	TR0 = 1;
+}
 
 // Gibt die Zahl an dem gewünschten Index zurück
 // Bsp.: numbers = 1234, index = 4, return => 1
