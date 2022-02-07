@@ -27,6 +27,8 @@ Aenderungen:
 unsigned char timerCounter = 0;
 unsigned int timer = 0;
 
+int number2display = 0x00;
+
 /************************** Definitionen ******************************/
 // REG517A specific
 #define maxNumber 9999
@@ -133,7 +135,7 @@ void main()
     // Speichert den Zeitpunkt der letzten Aktualisierung des Indexes der aktuell anzuzeigenden 7-Segment-Anzeige in ms
     unsigned int segmentCounterTimer = timer;
     // Speichert den aktuellen Zählerwert
-    int number2display = 0x00;
+    //int number2display = 0x00;
     // Speichert den Zeitpunkt der letzten Aktualisierung des Zählerwertes
     unsigned int counterTimer = timer;
     // Speichert die Ziffer des aktuellen Segments
@@ -165,7 +167,7 @@ void main()
 
     // Speichert folgende wichtige Werte:
     // { Timer Mode , IG Button , CIG02 , CIG01 , Richtung , Start/Stop , Richtung Button , Start/Stop Button }
-    unsigned char specialButtons = 0x40;
+    unsigned char specialButtons = 0x44; // 0b00000100;
     // Dient als temporärer Zwischenspeicher der ermitteten Werte
     unsigned char specialButtonsResult = 0x00;
 
@@ -220,31 +222,33 @@ void main()
 		IT0 = 0;
 		// Timer1: Timer, 8bit prescale, Timer0: Timer, 16bit
 		TMOD = 0x01;
-		// Startwert 64535 -> 0x0FC17
+		// Startwert 55535 -> 0x0FC17
 		// 1000 = 1ms
-		TL0 = 0x017;
-		TH0 = 0x0FC;
+		//TL0 = 0x017;
+		//TH0 = 0x0FC;
+		TL0 = 0x0EF;
+		TH0 = 0x0D8;
 		
 		// IR System konfigurieren
 		// IR für Timer0 aktiv
 		ET0 = 1;
 		// Alles aus
 		EAL = 0;
+		
+		// Interrupts aktivieren
+		EAL = 1;
+		// Timer0 aktiv
+		TR0 = 1;
 
     while (1)
     {
-				// Interrupts aktivieren
-				EAL = 1;
-				// Timer0 aktiv
-				TR0 = 1;
-			
         // Wenn die vergangene Zeit seit der letzten Abfrage der seperaten Taster, sowie der Button Matrix größer 50ms:
-        if (timer - buttonTimeout > 50)
+        if (timer - buttonTimeout > 5 && 0x01)
         {
             // Abfrage der beiden seperaten Taster
             // Arduino Mega specific
             //specialButtonsResult = PING & 0x03;
-					  specialButtonsResult = (P5 & 0x01) + ((P6 & 0x01) << 0x01);
+					  specialButtonsResult = (P5 & 0x01) | ((P3 & 0x04) >> 0x01); //((P6 & 0x01) << 0x01);
 
             // Wenn Zähler nicht aktiv:
             if ((0x01 ^ ((specialButtons & 0x04) >> 0x02)))
@@ -554,13 +558,21 @@ void main()
 					  display(0x00, 0x00);
 				}
 
+				// Notiz: NUR bei speed = 5 gibt es einen Bug beim Counter?!
+				// TODO: Start/Stop Taster funktionier noch nicht korrekt
+				//       Speziell funktioniert der Editor Modus noch nicht.
+				
 				// Counter defs
 				// Wenn die Differenz zwischen der aktuelle und dem letzten Zählvorgang größer oder gleich der Zählgeschwindigkeit und der Timer aktiv ist:
-				if (timer - counterTimer > speed && ((specialButtons & 0x04) >> 0x02))
+				if (timer - counterTimer > 4 && ((specialButtons & 0x04) >> 0x02))
 				{
+						// Speicher den Zeitpunkt der aktuellen Aktualisierung des Zählerwertes ab
+						counterTimer = timer;
+						
 						// Wenn der aktuelle Zählerstand der für die Richtung spezifischen Endzahl entspricht:
 						if (number2display == maxNumber * ((((specialButtons & (0x0F7 | (0x08 ^ (specialButtons & 0x08)))) | (0x08 & (0x08 ^ (specialButtons & 0x08)))) & 0x08) >> 0x03))
-						{
+						//if (number2display)
+					  {
 								// Setze den Zählerwert auf die für die Richtung spezifischen Startwert zurück
 								number2display = maxNumber * ((specialButtons & 0x08) >> 0x03);
 						}
@@ -570,8 +582,6 @@ void main()
 								// Addiere auf die aktuell angezeigte Zahl den für die Richtung spezifischen Wert (1 oder -1) 
 								number2display += 1 + ((-2) * ((specialButtons & 0x08) >> 0x03));
 						}
-						// Speicher den Zeitpunkt der aktuellen Aktualisierung des Zählerwertes ab
-						counterTimer = timer;
 				}
 				else
 				{ }
@@ -599,24 +609,24 @@ void main()
         //else
         //{ }
 				
-				if (timer < buttonTimeout)
-				{
-					 buttonTimeout = 0x00;
-				}
-				else if (timer < segmentCounterTimer)
-				{
-					 segmentCounterTimer = 0x00;
-				}
-				else if (timer < counterTimer)
-				{
-					counterTimer = 0x00;
-				}
+				//if (timer < buttonTimeout)
+				//{
+				//	 buttonTimeout = 0x00;
+				//}
+				//else if (timer < segmentCounterTimer)
+				//{
+				//	 segmentCounterTimer = 0x00;
+				//}
+				//else if (timer < counterTimer)
+				//{
+				//	counterTimer = 0x00;
+				//}
 
         // Wenn der Timer die Zeit von einer Sekunde überschreitet:
         //if (timer > 0x3e8)
         //{
-            // Setze den Timer, die Zeit seit der letzten Abfrage der seperaten Taster, sowie der Button Matrix und
-            // die Zeit seit der letzten Segment-Aktualisierung auf 0 zurück.
+        //    // Setze den Timer, die Zeit seit der letzten Abfrage der seperaten Taster, sowie der Button Matrix und
+        //    // die Zeit seit der letzten Segment-Aktualisierung auf 0 zurück.
         //    timer = buttonTimeout = segmentCounterTimer = counterTimer = 0;
         //}
         //else
@@ -646,12 +656,16 @@ void IRQ_Timer0() interrupt 1
 	}
 	else
 	{
-			timerCounter = 0x00;
-			timer++;
+		timerCounter = 0x00;
+		timer++;
+  //		number2display++;
 	}
 	
-	TL0 = 0x017;
-	TH0 = 0x0FC;
+	//TL0 = 0x017;
+	//TH0 = 0x0FC;
+	
+	TL0 = 0x0EF;
+	TH0 = 0x0D8;
 	
 	EAL = 1;
 	TR0 = 1;
