@@ -13,7 +13,7 @@ Aenderungen:
 2021-12-14 work on the functions
 2022-01-19 migation to the school controller
 2022-02-06 Add Timer0 and memory optimization
-2022-02-07
+2022-02-09 Fix edit mode bug
 
 *****************************************************************************/
 /******************* Text im Quelltext einbinden **********************/
@@ -366,7 +366,7 @@ void main()
                     number2display += index2number(currentButtonState) * fixPotenz(cursor);
 
                     // Wenn der Cursor größer ist als 0:
-                    if (cursor > 0)
+                    if (cursor > 0x00)
                     {
                         // Versetze den Cursor einen weiter nch rechts
                         cursor--;
@@ -428,7 +428,7 @@ void main()
         { }
 
         // Wenn die gespeichten Werte des Inkrementalgebers von den aktuell gemessenen unterscheiden:
-        if ((specialButtonsResult & 0x03) ^ ((specialButtons & 0x30) >> 0x04))
+        if (((specialButtonsResult & 0x03) ^ ((specialButtons & 0x30) >> 0x04)) && 0x00)
         {
             // Wenn beide gespeicherten Werte auf 1 stehen:
             if ((specialButtons & 0x30) / 0x30)
@@ -532,17 +532,17 @@ void main()
         //}
         // Sonst, wenn der Timer Modus nicht aktiv ist und der Zählerwert nicht 0 ist:
         //else
-        //{
+        //{ }
 				
 				// Wenn das aktuelle Segment nicht dem aktuellen Werte des Cursors entspricht oder der Editor Modus nicht aktiv ist:
-				if (segmentCounter != cursor || ((specialButtons & 0x04) >> 0x02))
+				if (((specialButtons & 0x04) >> 0x02) || segmentCounter != cursor)
 				{
 						// Zeige die aktuelle Ziffer auf dem aktuellen Segment an
 						//display(segments[(int)number], (nrOfSegments - 0x01) - segmentCounter);
 					  display(segments[(int)number], segmentCounter);
 				}
 				// Sonst, wenn der Timer größer oder gleich 500ms ist:
-				else if (timer % 10000 < 5000)
+				else if ((timer % 20) < 10)
 				{
 						// Zeige die aktuelle Ziffer auf dem aktuellen Segment an
 		        // Arduino Mega specific
@@ -555,7 +555,7 @@ void main()
 						// Zeige nichts auf dem aktuellen Segment an
 		        // Arduino Mega specific
 						//display(0x00, (nrOfSegments - 0x01) - segmentCounter);
-					  display(0x00, 0x00);
+					  display(0x00, segmentCounter);
 				}
 
 				// Notiz: NUR bei speed = 5 gibt es einen Bug beim Counter?!
@@ -589,7 +589,7 @@ void main()
         //}
 
         // Wenn die Differenz zwischen der letzten Segment-Aktualisierung und der aktuellen Zeit größer oder gleich 5ms ist:
-        //if (timer - segmentCounterTimer >= 0x02)
+        //if (timer - segmentCounterTimer >= 0x01)
         //{
 				// Wenn das aktuelle Segment nicht das letzte in der Richtung ist:
 				if (segmentCounter < (nrOfSegments - 0x01))
@@ -603,8 +603,8 @@ void main()
 						// Springe auf das erste zurück
 						segmentCounter = 0x00;
 				}
-				// Speicher die Zeit der letzten Segment-Aktualisierung ab
-				segmentCounterTimer = timer;
+				//		// Speicher die Zeit der letzten Segment-Aktualisierung ab
+				//		segmentCounterTimer = timer;
         //}
         //else
         //{ }
@@ -650,7 +650,7 @@ void IRQ_Timer0() interrupt 1
 	TR0 = 0;
 	EAL = 0;
 	
-	if (timerCounter < 10)
+	if (timerCounter < 1)
 	{
 			timerCounter++;
 	}
@@ -697,8 +697,12 @@ char getNumber(int numbers, char index)
 char readButtonMatrix(char maxRows, char maxColumns)
 {
     // Zwischenspeicher [LOOPS]
+		
     char row = 0;
     char column = 0;
+		
+		// Display ausschalten
+		P4 = 0x00;
 
     for (row = 0; row < maxRows; row++)
     {
@@ -706,6 +710,7 @@ char readButtonMatrix(char maxRows, char maxColumns)
 				// 0b1110XXXX > 0b1101XXXX > 0b1011 > 0b0111XXXX
 				//PORTA = 0x0F0 - (0x01 << (row + 0x04));
 			  P6 = (P6 & 0x0F) | (0x0F0 - (0x01 << (row + 0x04)));
+			  //P8 = (P8 & 0x0F0) | (0x0F - (0x01 << row));
 
         for (column = 0; column < maxColumns; column++)
         {
@@ -713,9 +718,11 @@ char readButtonMatrix(char maxRows, char maxColumns)
 						// Arduino Mega specific
 						//if (!((PINA & (0x01 << column)) >> column))
 					  if (!((P8 & (0x01 << column)) >> column))
+					  //if (!((P6 & (0x10 << column)) >> (column + 0x04)))
 						{
 								// Gebe den Index des gedrückten Buttons zurück (1 - 16)
 								return (maxColumns * row) + column + 0x01;
+							  //column = column;
 						}
 						else
 						{ }
