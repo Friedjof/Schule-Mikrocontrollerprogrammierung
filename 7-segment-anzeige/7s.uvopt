@@ -120,7 +120,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>MON51</Key>
-          <Name>-S5 -B9600 -O15</Name>
+          <Name>-S7 -B9600 -O15</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
