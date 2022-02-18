@@ -1,0 +1,5 @@
+"main.obj" 
+TO "7 Segment Anzeige" 
+RAMSIZE(256) 
+CODE( 0X0000-0X1FFE )
+XDATA( 0X4000-0XBFFE,0XF800-0XFFFF )

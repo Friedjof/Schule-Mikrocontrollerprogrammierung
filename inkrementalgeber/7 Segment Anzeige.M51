@@ -1,0 +1,85 @@
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                    02/18/2022  21:49:46  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22.2.0, INVOKED BY:
+C:\KEIL_V5\C51\BIN\BL51.EXE main.obj TO 7 Segment Anzeige RAMSIZE (256) CODE (0X0000-0X1FFE) XDATA (0X4000-0XBFFE, 0XF80
+>> 0-0XFFFF)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  main.obj (MAIN)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C_STARTUP)
+
+
+LINK MAP OF MODULE:  7 Segment Anzeige (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            IDATA   0008H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+                    0003H     07FDH                  *** GAP ***
+            CODE    0800H     0039H     UNIT         ?PR?MAIN?MAIN
+            CODE    0839H     000CH     UNIT         ?C_C51STARTUP
+
+
+
+OVERLAY MAP OF MODULE:   7 Segment Anzeige (MAIN)
+
+
+SEGMENT
+  +--> CALLED SEGMENT
+---------------------
+?C_C51STARTUP
+  +--> ?PR?MAIN?MAIN
+
+
+
+SYMBOL TABLE OF MODULE:  7 Segment Anzeige (MAIN)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0090H         PUBLIC        P1
+  D:00B0H         PUBLIC        P3
+  C:0800H         PUBLIC        main
+  -------         PROC          MAIN
+  -------         DO            
+  D:0007H         SYMBOL        specialButtons
+  D:0006H         SYMBOL        specialButtonsResult
+  -------         ENDDO         
+  C:0800H         LINE#         126
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                  02/18/2022  21:49:46  PAGE 2
+
+
+  C:0800H         LINE#         127
+  C:0800H         LINE#         144
+  C:0802H         LINE#         147
+  C:0802H         LINE#         150
+  C:0805H         LINE#         153
+  C:0805H         LINE#         154
+  C:0805H         LINE#         157
+  C:0818H         LINE#         160
+  C:0826H         LINE#         161
+  C:0826H         LINE#         162
+  C:0829H         LINE#         165
+  C:0837H         LINE#         166
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        MAIN
+
+******************************************************************************
+* RESTRICTED VERSION WITH 0800H BYTE CODE SIZE LIMIT; USED: 0039H BYTE ( 2%) *
+******************************************************************************
+
+Program Size: data=9.0 xdata=0 code=72
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)
