@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              02/18/2022 21:49:46 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              02/19/2022 00:00:10 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -14,184 +14,100 @@ line level    source
    5          Datum:          2021-12-10
    6          Datei:          main.c
    7          Einsatz:        Schulung
-   8          Beschreibung:   Ein Zähler für die 7 Segment Anzeigen + Eingabe auf
-   9                          der 4x4 Taster Matrix, Inkrementalgeber, 2 Taster
-  10                          (P5.0 & P6.0)
-  11          Funktionen:     main (mit Setup & main loop), display (zeigt eine
-  12                          Zahl an der spezifischen Stelle an),
-  13                          readButtonMatrix (ließt die 4x4 Taster Matrix aus),
-  14                          getNumber (gibt die Ziffer der, gegebenen Zahl an
-  15                          4x4 Taster Matrix zu Zahlen auf), fixPotenz
-  16                          (errechnet die Zahl für die gegebene Potenz und die
-  17                          Basis zehn), IRQ_Timer0 (die Interrupt Funktion
-  18                          lässt die Variable "timer" hochzählen)
-  19          
-  20          +-------------------------------------------------------------------+
-  21          | Anleitung:                                                        |
-  22          |  Der Controller starte im Editier-Modus. Erkennbar auch an dem    |
-  23          |  blickenden Cursor. Hier können Zahlen über die Matrixtastatur    |
-  24          |  gesetzt werden. Der Cursor wandert nach rechts weiter.           |
-  25          |  Alternativ kann auch über die Button-Matrix eine exakte Position |
-  26          |  festgelegt werden (A 1000er, B 100er, C 10er, D 1er). Auch kann  |
-  27          |  die Zahl in dem Editor Modus per Inkrementalgeber hoch bzw.      |
-  28          |  runter geregelt werden. Der Cursor wird hierbei nicht beachtet.  |
-  29          |                                                                   |
-  30          |  Durch das Drücken vom vorderen Taster [P5.0] wird der Zähler     |
-  31          |  gestartet. Die Richtung kann auch umgekehrt werden mit dem       |
-  32          |  hinteren Taster [P6.0]. Durch das erneute Drücken auf den        |
-  33          |  vorderen Taster wird der Zähler wieder angehalten und der        |
-  34          |  Editiermodus gestartet. Beim laufenden Zähler ist die            |
-  35          |  Button-Matrix deaktiviert.                                       |
-  36          |                                                                   |
-  37          |  Die Zählgeschwindigkeit kann geändert werden, indem der          |
-  38          |  Inkrementalgeber beim laufenden Zähler hoch bzw. runter geregelt |
-  39          |  wird.                                                            |
-  40          |                                                                   |
-  41          |  Durch das Drücken auf den Inkrementalgeber wird der Timer Modus  |
-  42          |  aktiviert. Auch erkennbar an dem leuchtenden Licht [P1.2]. Dies  |
-  43          |  bedeutet, dass bei dem Wert 0 angehalten wird und das Display    |
-  44          |  aufblickt. Dieser Modus wird deaktiviert, wenn  während des      |
-  45          |  Blickens eine der beiden anderen Taster oder die 4x4 Taster      |
-  46          |  Matrix gedrückt wird. Im Anschluss daran wird der Editor         |
-  47          |  aufgerufen. Durch erneutes Drücken des Inkrementalgeber wird     |
-  48          |  dieser Modus ebenfalls wieder deaktiviert und der Zähler läuft   |
-  49          |  weiter.                                                          |
-  50          +-------------------------------------------------------------------+
-  51          | Quellen:                                                          |
-  52          | ● Timer beim Arduino                                              |
-  53          |   ● https://www.exp-tech.de/blog/arduino-tutorial-timer           |
-  54          | ● Arduino Mega Ports                                              |
-  55          |   ● https://aws1.discourse-cdn.com/arduino/original/4X/6/f/b/6fb6102c3ff917a32b3fabaa7b01c72fb208919e.
-C51 COMPILER V9.60.0.0   MAIN                                                              02/18/2022 21:49:46 PAGE 2   
+   8          Beschreibung:   Test für den Inkrementalgeber
+   9          Funktionen:     Bei jeder Veränderung des Inkrementalgebers ändert die
+  10                          LED/Brine den Zustand.
+  11          
+  12          Erwartungen:
+  13          Wie im Datenblatt beschrieben: (vgl. labmultiv2.pdf S. 10 dritter Absatz)
+  14          "Das Programm erkennt, dass der Geber bewegt wurde daran, dass eine Leitung
+  15          ihren Zustand gegenüber dem letzten Abtastevorgang verändert hat".
+  16          Somit dürfte sich die LED/Birne nur beim Drehen des Inkrementalgeber verändern.
+  17          Dies ist unabhängig von der Drehrichtung.
+  18          
+  19          Folgende Ergebnisse werden beobachtet:
+  20          Controller 3:
+  21          LED/Birne blinkt unabhängig von einer Aktion am Inkrementalgeber in einem festen
+  22          Rhythmus auf. Bei einer Bewegung des Inkrementalgebers schaltet die LED/Birne in
+  23          einer der Drehgeschwindigkeit angemessener Gewaltigkeit zwischen den Zuständen.
+  24          
+  25          Controller X:
+  26          LED/Birne verändert den Status vorerst nicht. Bei einer Aktion am Inkrementalgeber
+  27          wechselt der Status der Drehgeschwindigkeit angemessener Gewaltigkeit zwischen den
+  28          Zuständen.
+  29          
+  30          +-------------------------------------------------------------------+
+  31          | PINBELEGUNG                                                       |
+  32          +------------------------------+--------------------+---------------+
+  33          | Elemente                     |    Arduino Mega    |    REG517A    |
+  34          |                              |   Ports      Pins  |               |
+  35          +------------------------------+-----------+--------+---------------+
+  36          | ● Inkrementalgeber           |           |        |               |
+  37          |   ● Inkrementalgeber Takt    | PORTF.0-1 | A0-1   | P3.3&5        |
+  38          +------------------------------+-----------+--------+---------------+
+  39          ***********************************************************************
+  40          Änderungen:
+  41          2022-02-18 Inkrementalgeber Tests
+  42          
+  43          ***********************************************************************/
+  44          /******************* Text im Quelltext einbinden **********************/
+  45          #include "REG517A.h"
+  46          
+  47          /*************************** Konstanten *******************************/
+  48          
+  49          
+  50          /*********************** globale Variablen ****************************/
+  51          
+  52          /************************** Prototypen ********************************/
+  53          
+  54          void main()
+  55          {
+C51 COMPILER V9.60.0.0   MAIN                                                              02/19/2022 00:00:10 PAGE 2   
 
-             -png
-  56          | ● Port Adressierung beim Arduino:                                 |
-  57          |   ● https://hartmut-waller.info/arduinoblog/leds-schalten-port-ddr/
-  58          +-------------------------------------------------------------------+
-  59          | PINBELEGUNG                                                       |
-  60          +------------------------------+--------------------+---------------+
-  61          | Elemente                     |    Arduino Mega    |    REG517A    |
-  62          |                              |   Ports      Pins  |               |
-  63          +------------------------------+-----------+--------+---------------+
-  64          | ● 4x4 Taster Matrix          |           |        |               |
-  65          |   ● ROWS                     | PORTA.0-3 | D22-25 | P6.4-7        |
-  66          |   ● COLUMNS                  | PORTA.4-7 | D26-29 | P8.0-3        |
-  67          | ● 4x 7 Segment Anzeigen      |           |        |               |
-  68          |   ● Segmente                 | PORTL.0-7 | D42-49 | P4.0-7        |
-  69          |   ● Anzeigen                 | PORTB.0-3 | D50-53 | P6.4-7        |
-  70          | ● 2x Taster                  |           |        |               |
-  71          |   ● Start/Stopp              | PORTG.0   | D41    | P5.0          |
-  72          |   ● Richtungswechsel         | PORTG.1   | D40    | P6.0          |
-  73          | ● Inkrementalgeber           |           |        |               |
-  74          |   ● Taster - Timer Mode      | PORTF.2   | A2     | P3.4          |
-  75          |   ● Inkrementalgeber Takt    | PORTF.0-1 | A0-1   | P3.3&5        |
-  76          +------------------------------+-+---------+--------+---------------+
-  77          | Belegung der 4x4 Taster Matrix |                                  |
-  78          +--------------------------------+                                  |
-  79          |                                                                   |
-  80          |             | 1  2  3  4 | Cursor Steuerung per Taste |           |
-  81          |           --+------------+----------------------------+           |
-  82          |           A | V  1  2  3 | V = 1000er Stelle          |           |
-  83          |           B | X  4  5  6 | X = 100er Stelle           |           |
-  84          |           C | Y  7  8  9 | Y = 10er Stelle            |           |
-  85          |           D | Z  <  0  > | Z = 1er Stelle             |           |
-  86          |           --+------------+----------------------------+           |
-  87          |                                                                   |
-  88          +------------------+------------------------------------------------+
-  89          | Inkrementalgeber |                                                |
-  90          +------------------+                                                |
-  91          |                                                                   |
-  92          |                            Timer Mode                             |
-  93          |                                ⮟                                 |
-  94          |      Editor - Zahl    +1  ⮜──  +  ──⮞  -1                        |
-  95          |      Zähler - Speed   +5  ⮜──  +  ──⮞  -5                        |
-  96          |                               ___                                 |
-  97          |                             +     +                               |
-  98          |                            |   ●   |                              |
-  99          |                             +     +                               |
- 100          |                               \_/                                 |
- 101          |                                                                   |
- 102          +-------------------------------------------------------------------+
- 103          
- 104          ***********************************************************************
- 105          Änderungen:
- 106          2021-12-10 init project + add simple functions
- 107          2021-12-14 work on the functions
- 108          2022-01-19 migation to the school controller
- 109          2022-02-06 Add Timer0 and memory optimization
- 110          2022-02-09 Fix edit mode bug
- 111          2022-02-10 Save cache and add timer mode
- 112          
- 113          ***********************************************************************/
- 114          /******************* Text im Quelltext einbinden **********************/
- 115          #include "REG517A.h"
- 116          
-C51 COMPILER V9.60.0.0   MAIN                                                              02/18/2022 21:49:46 PAGE 3   
-
- 117          /*************************** Konstanten *******************************/
- 118          
- 119          
- 120          /*********************** globale Variablen ****************************/
- 121          
- 122          /************************** Prototypen ********************************/
- 123          
- 124          
- 125          // Main Funktion
- 126          void main()
- 127          {
- 128   1          /* +----------------------------------------------------+--------------+
- 129   1           * | Speichert folgende wichtige Werte [specialButtons] |              |
- 130   1           * +----------------------------------------------------+              |
- 131   1           * |                                                                   |
- 132   1           * | Bit Index | Beschreibung                                          |
- 133   1           * +-----------+-------------------------------------------------------+
- 134   1           * |     7     | Timer Modus ( 1 = an & 0 = aus)                       |
- 135   1           * |     6     | Inkrementalgeber Taster Zwischenspeicher              |
- 136   1           * |     5     | Inkrementalgeber 02 Zwischenspeicher                  |
- 137   1           * |     4     | Inkrementalgeber 01 Zwischenspeicher                  |
- 138   1           * |     3     | Zähl-Richtung (1 = runter & 0 = rauf)                 |
- 139   1           * |     2     | Zähler Modus  (1 = Zähler & 0 = Editor)               |
- 140   1           * |     1     | Richtungs Taster Zwischenspeicher                     |
- 141   1           * |     0     | Zähler Modus Taster Zwischenspeicher                  |
- 142   1           * +-----------+-------------------------------------------------------+
- 143   1           */
- 144   1          unsigned char specialButtons = 0x43;
- 145   1      
- 146   1          // Dient als temporärer Zwischenspeicher von ermitteten Werte der verschiedenen Taster
- 147   1          unsigned char specialButtonsResult = 0x00;
- 148   1      
- 149   1          // Schaltet die Timer-Mode-LED aus
- 150   1          P1 = P1 & 0x0FD;
- 151   1          
- 152   1          // Haupt-Schleife
- 153   1          while (1)
- 154   1          {
- 155   2              // Inkrementalgeber auslesen
- 156   2              // Der Port des Inkrementalgebers wird abgefragt
- 157   2              specialButtonsResult = ((P3 & 0x18) >> 0x02) | ((P3 & 0x20) >> 0x05);
- 158   2      
- 159   2              // Wenn die gespeichten Werte des Inkrementalgebers von den aktuell gemessenen unterscheiden und b
-             -eide gespeicherten Werte auf 1 stehen:
- 160   2              if (((specialButtonsResult & 0x03) ^ ((specialButtons & 0x30) >> 0x04)))
- 161   2              {
- 162   3                  P1 = 0x02 ^ P1;
- 163   3      
- 164   3                  // Setze den gespeicherten Wert des Inkrementalgebers auf den gerade gemessenen Wert
- 165   3                  specialButtons = (specialButtons & (0xCF | ((specialButtonsResult & 0x03) << 0x04))) | (0x30 &
-             - ((specialButtonsResult & 0x03) << 0x04));
- 166   3              }
- 167   2              else
- 168   2              { }
- 169   2          }
- 170   1      }
+  56   1          // Speichert das aktuelle Messergebnis ab
+  57   1          char i01_Current_Status = 0x00;
+  58   1          char i02_Current_Status = 0x00;
+  59   1        
+  60   1          // Speichert den vorherigen gemessenen Wert ab
+  61   1          char i01_Last_Status = 0x00;
+  62   1          char i02_Last_Status = 0x00;
+  63   1          
+  64   1          // Haupt-Schleife
+  65   1          while (0x01)
+  66   1          {
+  67   2              // Inkrementalgeber auslesen
+  68   2              // Die Ports des Inkrementalgebers werden abgefragt:
+  69   2              // zB.:  10101010b
+  70   2              //     & 00001000b
+  71   2              //     = 00001000b >> 3 (Bitshift: Bit wird um drei nach rechts verschoben) => 00000001b
+  72   2              i01_Current_Status = (P3 & 0x08) >> 0x03;
+  73   2              // zB.:   10101010b
+  74   2              //      & 00100000b
+  75   2              //      = 00100000b >> 5 (Bitshift: Bit wird um fünf nach rechts verschoben) => 00000001b
+  76   2              i02_Current_Status = (P3 & 0x20) >> 0x05;
+  77   2      
+  78   2              // Wenn die gespeichten Werte des Inkrementalgebers von den aktuell gemessenen unterscheiden:
+  79   2              if (i01_Current_Status != i01_Last_Status || i02_Current_Status != i02_Last_Status)
+  80   2              {
+  81   3                  // Drehe den Wert der LED bzw. der Glühbirne um
+  82   3                  // BSP.: (P1 = ) 10101010b ^ (Maske = ) 00000010b = 0x00 und (P1 = ) 01010101b ^ (Maske = ) 0000001
+             -0b = 0x01
+  83   3                  P1 = 0x02 ^ P1;
+  84   3      
+  85   3                  // Speichert den aktuellen Wert ab
+  86   3                  i01_Last_Status = i01_Current_Status;
+  87   3                  i02_Last_Status = i02_Current_Status;
+  88   3              }
+  89   2              else
+  90   2              { }
+  91   2          }
+  92   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     57    ----
+   CODE SIZE        =     39    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
-C51 COMPILER V9.60.0.0   MAIN                                                              02/18/2022 21:49:46 PAGE 4   
-
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----
