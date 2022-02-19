@@ -79,8 +79,8 @@
       </OPTFL>
       <CpuCode>0</CpuCode>
       <DebugOpt>
-        <uSim>1</uSim>
-        <uTrg>0</uTrg>
+        <uSim>0</uSim>
+        <uTrg>1</uTrg>
         <sLdApp>1</sLdApp>
         <sGomain>1</sGomain>
         <sRbreak>1</sRbreak>
@@ -119,35 +119,23 @@
       <TargetDriverDllRegistry>
         <SetRegEntry>
           <Number>0</Number>
+          <Key>MON51</Key>
+          <Name>-S7 -B9600 -O15</Name>
+        </SetRegEntry>
+        <SetRegEntry>
+          <Number>0</Number>
           <Key>DLGD500</Key>
-          <Name>(5048=-1,-1,-1,-1,0)(98=896,280,1230,673,1)(82=-1,-1,-1,-1,0)(83=1328,292,1536,407,1)(84=-1,-1,-1,-1,0)(85=-1,-1,-1,-1,0)(86=1221,291,1429,406,1)(87=1242,457,1450,572,1)(88=1241,565,1449,680,1)(89=-1,-1,-1,-1,0)(90=-1,-1,-1,-1,0)(102=-1,-1,-1,-1,0)(80=-1,-1,-1,-1,0)(81=-1,-1,-1,-1,0)(91=660,351,870,626,1)(92=-1,-1,-1,-1,0)(93=-1,-1,-1,-1,0)(94=-1,-1,-1,-1,0)(100=-1,-1,-1,-1,0)(101=-1,-1,-1,-1,0)(5031=28,518,241,681,1)(104=-1,-1,-1,-1,0)</Name>
+          <Name>(5048=-1,-1,-1,-1,0)(98=-1,-1,-1,-1,0)(82=-1,-1,-1,-1,0)(83=-1,-1,-1,-1,0)(84=-1,-1,-1,-1,0)(85=-1,-1,-1,-1,0)(86=-1,-1,-1,-1,0)(87=-1,-1,-1,-1,0)(88=-1,-1,-1,-1,0)(89=-1,-1,-1,-1,0)(90=-1,-1,-1,-1,0)(102=-1,-1,-1,-1,0)(80=-1,-1,-1,-1,0)(81=-1,-1,-1,-1,0)(91=-1,-1,-1,-1,0)(92=-1,-1,-1,-1,0)(93=-1,-1,-1,-1,0)(94=-1,-1,-1,-1,0)(100=-1,-1,-1,-1,0)(101=-1,-1,-1,-1,0)(5031=2,609,215,772,1)(104=-1,-1,-1,-1,0)</Name>
         </SetRegEntry>
       </TargetDriverDllRegistry>
-      <Breakpoint>
-        <Bp>
-          <Number>0</Number>
-          <Type>0</Type>
-          <LineNumber>249</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>0</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>0</BreakIfRCount>
-          <Filename>main.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression></Expression>
-        </Bp>
-      </Breakpoint>
+      <Breakpoint/>
       <Tracepoint>
         <THDelay>0</THDelay>
       </Tracepoint>
       <DebugFlag>
         <trace>0</trace>
-        <periodic>1</periodic>
-        <aLwin>1</aLwin>
+        <periodic>0</periodic>
+        <aLwin>0</aLwin>
         <aCover>0</aCover>
         <aSer1>0</aSer1>
         <aSer2>0</aSer2>

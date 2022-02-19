@@ -1,0 +1,118 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              02/19/2022 00:00:10 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          /*****************************************************************************
+   2          h e i n r i c h -h e r t z -b e r u f s k o l l e g  d e r  s t a d t  b o n n
+   3          Autor:          Friedjof Noweck
+   4          Klasse:         IH119
+   5          Datum:          2021-12-10
+   6          Datei:          main.c
+   7          Einsatz:        Schulung
+   8          Beschreibung:   Test für den Inkrementalgeber
+   9          Funktionen:     Bei jeder Veränderung des Inkrementalgebers ändert die
+  10                          LED/Brine den Zustand.
+  11          
+  12          Erwartungen:
+  13          Wie im Datenblatt beschrieben: (vgl. labmultiv2.pdf S. 10 dritter Absatz)
+  14          "Das Programm erkennt, dass der Geber bewegt wurde daran, dass eine Leitung
+  15          ihren Zustand gegenüber dem letzten Abtastevorgang verändert hat".
+  16          Somit dürfte sich die LED/Birne nur beim Drehen des Inkrementalgeber verändern.
+  17          Dies ist unabhängig von der Drehrichtung.
+  18          
+  19          Folgende Ergebnisse werden beobachtet:
+  20          Controller 3:
+  21          LED/Birne blinkt unabhängig von einer Aktion am Inkrementalgeber in einem festen
+  22          Rhythmus auf. Bei einer Bewegung des Inkrementalgebers schaltet die LED/Birne in
+  23          einer der Drehgeschwindigkeit angemessener Gewaltigkeit zwischen den Zuständen.
+  24          
+  25          Controller X:
+  26          LED/Birne verändert den Status vorerst nicht. Bei einer Aktion am Inkrementalgeber
+  27          wechselt der Status der Drehgeschwindigkeit angemessener Gewaltigkeit zwischen den
+  28          Zuständen.
+  29          
+  30          +-------------------------------------------------------------------+
+  31          | PINBELEGUNG                                                       |
+  32          +------------------------------+--------------------+---------------+
+  33          | Elemente                     |    Arduino Mega    |    REG517A    |
+  34          |                              |   Ports      Pins  |               |
+  35          +------------------------------+-----------+--------+---------------+
+  36          | ● Inkrementalgeber           |           |        |               |
+  37          |   ● Inkrementalgeber Takt    | PORTF.0-1 | A0-1   | P3.3&5        |
+  38          +------------------------------+-----------+--------+---------------+
+  39          ***********************************************************************
+  40          Änderungen:
+  41          2022-02-18 Inkrementalgeber Tests
+  42          
+  43          ***********************************************************************/
+  44          /******************* Text im Quelltext einbinden **********************/
+  45          #include "REG517A.h"
+  46          
+  47          /*************************** Konstanten *******************************/
+  48          
+  49          
+  50          /*********************** globale Variablen ****************************/
+  51          
+  52          /************************** Prototypen ********************************/
+  53          
+  54          void main()
+  55          {
+C51 COMPILER V9.60.0.0   MAIN                                                              02/19/2022 00:00:10 PAGE 2   
+
+  56   1          // Speichert das aktuelle Messergebnis ab
+  57   1          char i01_Current_Status = 0x00;
+  58   1          char i02_Current_Status = 0x00;
+  59   1        
+  60   1          // Speichert den vorherigen gemessenen Wert ab
+  61   1          char i01_Last_Status = 0x00;
+  62   1          char i02_Last_Status = 0x00;
+  63   1          
+  64   1          // Haupt-Schleife
+  65   1          while (0x01)
+  66   1          {
+  67   2              // Inkrementalgeber auslesen
+  68   2              // Die Ports des Inkrementalgebers werden abgefragt:
+  69   2              // zB.:  10101010b
+  70   2              //     & 00001000b
+  71   2              //     = 00001000b >> 3 (Bitshift: Bit wird um drei nach rechts verschoben) => 00000001b
+  72   2              i01_Current_Status = (P3 & 0x08) >> 0x03;
+  73   2              // zB.:   10101010b
+  74   2              //      & 00100000b
+  75   2              //      = 00100000b >> 5 (Bitshift: Bit wird um fünf nach rechts verschoben) => 00000001b
+  76   2              i02_Current_Status = (P3 & 0x20) >> 0x05;
+  77   2      
+  78   2              // Wenn die gespeichten Werte des Inkrementalgebers von den aktuell gemessenen unterscheiden:
+  79   2              if (i01_Current_Status != i01_Last_Status || i02_Current_Status != i02_Last_Status)
+  80   2              {
+  81   3                  // Drehe den Wert der LED bzw. der Glühbirne um
+  82   3                  // BSP.: (P1 = ) 10101010b ^ (Maske = ) 00000010b = 0x00 und (P1 = ) 01010101b ^ (Maske = ) 0000001
+             -0b = 0x01
+  83   3                  P1 = 0x02 ^ P1;
+  84   3      
+  85   3                  // Speichert den aktuellen Wert ab
+  86   3                  i01_Last_Status = i01_Current_Status;
+  87   3                  i02_Last_Status = i02_Current_Status;
+  88   3              }
+  89   2              else
+  90   2              { }
+  91   2          }
+  92   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     39    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
