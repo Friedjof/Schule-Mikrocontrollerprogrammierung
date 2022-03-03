@@ -1,0 +1,255 @@
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                    03/03/2022  20:13:11  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22.2.0, INVOKED BY:
+C:\KEIL_V5\C51\BIN\BL51.EXE main.obj TO LCD_test RAMSIZE (256) CODE (0X0000-0X1FFE) XDATA (0X4000-0XBFFE, 0XF800-0XFFFF)
+>> 
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  main.obj (MAIN)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C_STARTUP)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?COPY)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?CLDOPTR)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?CSTPTR)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?CSTOPTR)
+
+
+LINK MAP OF MODULE:  LCD_test (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0012H     UNIT         ?DT?MAIN
+            DATA    001AH     000FH     UNIT         ?DT?_RTC_READTIME?MAIN
+            DATA    0029H     0009H     UNIT         _DATA_GROUP_
+            DATA    0032H     0006H     UNIT         ?DT?_I2C_RCV?MAIN
+            IDATA   0038H     0001H     UNIT         ?STACK
+
+            * * * * * * *  X D A T A   M E M O R Y  * * * * * * *
+            XDATA   0000H     FEFFH     ABSOLUTE     
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+                    0003H     07FDH                  *** GAP ***
+            CODE    0800H     0157H     UNIT         ?C?LIB_CODE
+            CODE    0957H     0076H     UNIT         ?PR?_I2C_RCV?MAIN
+            CODE    09CDH     004CH     UNIT         ?PR?_RTC_READTIME?MAIN
+            CODE    0A19H     003BH     UNIT         ?PR?_I2C_XMIT?MAIN
+            CODE    0A54H     001CH     UNIT         ?PR?_RTC_SETTIME?MAIN
+            CODE    0A70H     0010H     UNIT         ?PR?I2C_INIT?MAIN
+            CODE    0A80H     000CH     UNIT         ?PR?MAIN?MAIN
+            CODE    0A8CH     000CH     UNIT         ?C_C51STARTUP
+            CODE    0A98H     0006H     UNIT         ?CO?MAIN
+
+
+
+OVERLAY MAP OF MODULE:   LCD_test (MAIN)
+
+
+SEGMENT                          DATA_GROUP 
+  +--> CALLED SEGMENT          START    LENGTH
+----------------------------------------------
+?C_C51STARTUP                  -----    -----
+  +--> ?PR?MAIN?MAIN
+
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                  03/03/2022  20:13:11  PAGE 2
+
+
+?PR?MAIN?MAIN                  -----    -----
+  +--> ?PR?I2C_INIT?MAIN
+  +--> ?PR?_RTC_SETTIME?MAIN
+
+?PR?_RTC_SETTIME?MAIN          0029H    0006H
+  +--> ?PR?_I2C_XMIT?MAIN
+
+?PR?_I2C_XMIT?MAIN             002FH    0003H
+
+
+
+SYMBOL TABLE OF MODULE:  LCD_test (MAIN)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0008H         PUBLIC        i2c_s1
+  C:0A70H         PUBLIC        i2c_init
+  D:0009H         PUBLIC        i2c_reg
+  C:0A19H         PUBLIC        _i2c_xmit
+  C:0A80H         PUBLIC        main
+  C:0A54H         PUBLIC        _rtc_settime
+  C:0957H         PUBLIC        _i2c_rcv
+  X:0000H         PUBLIC        xmem
+  C:0A98H         SYMBOL        _?ix1000
+  D:000AH         PUBLIC        rtc_buf
+  C:09CDH         PUBLIC        _rtc_readtime
+  -------         PROC          MAIN
+  C:0A80H         LINE#         45
+  C:0A80H         LINE#         46
+  C:0A80H         LINE#         48
+  C:0A83H         LINE#         51
+  C:0A8AH         LINE#         53
+  C:0A8AH         LINE#         54
+  C:0A8AH         LINE#         56
+  -------         ENDPROC       MAIN
+  -------         PROC          I2C_INIT
+  C:0A70H         LINE#         60
+  C:0A70H         LINE#         61
+  C:0A70H         LINE#         62
+  C:0A73H         LINE#         63
+  C:0A76H         LINE#         64
+  C:0A79H         LINE#         65
+  C:0A7CH         LINE#         66
+  C:0A7FH         LINE#         67
+  -------         ENDPROC       I2C_INIT
+  -------         PROC          _I2C_XMIT
+  D:0007H         SYMBOL        slave_addr
+  D:0005H         SYMBOL        length
+  D:002FH         SYMBOL        buffer
+  -------         DO            
+  D:0007H         SYMBOL        i
+  -------         ENDDO         
+  C:0A19H         LINE#         69
+  C:0A1FH         LINE#         70
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                  03/03/2022  20:13:11  PAGE 3
+
+
+  C:0A1FH         LINE#         73
+  C:0A24H         LINE#         74
+  C:0A27H         LINE#         76
+  C:0A29H         LINE#         78
+  C:0A30H         LINE#         79
+  C:0A30H         LINE#         81
+  C:0A35H         LINE#         82
+  C:0A38H         LINE#         83
+  C:0A38H         LINE#         85
+  C:0A48H         LINE#         86
+  C:0A4BH         LINE#         87
+  C:0A50H         LINE#         88
+  C:0A53H         LINE#         89
+  -------         ENDPROC       _I2C_XMIT
+  -------         PROC          _I2C_RCV
+  D:0007H         SYMBOL        slave_addr
+  D:0005H         SYMBOL        word_addr
+  D:0034H         SYMBOL        length
+  D:0035H         SYMBOL        buffer
+  -------         DO            
+  D:0007H         SYMBOL        i
+  D:0006H         SYMBOL        error
+  -------         ENDDO         
+  C:0957H         LINE#         91
+  C:0959H         LINE#         92
+  C:0959H         LINE#         94
+  C:095BH         LINE#         95
+  C:0960H         LINE#         97
+  C:0963H         LINE#         98
+  C:0965H         LINE#         100
+  C:096AH         LINE#         102
+  C:096DH         LINE#         103
+  C:096DH         LINE#         104
+  C:096DH         LINE#         105
+  C:096FH         LINE#         106
+  C:096FH         LINE#         108
+  C:096FH         LINE#         110
+  C:0971H         LINE#         113
+  C:0976H         LINE#         115
+  C:0979H         LINE#         116
+  C:0979H         LINE#         117
+  C:097CH         LINE#         118
+  C:097FH         LINE#         119
+  C:097FH         LINE#         121
+  C:097FH         LINE#         123
+  C:0982H         LINE#         125
+  C:0986H         LINE#         126
+  C:098EH         LINE#         127
+  C:098EH         LINE#         129
+  C:0993H         LINE#         131
+  C:0996H         LINE#         132
+  C:0998H         LINE#         133
+  C:099AH         LINE#         134
+  C:099AH         LINE#         136
+  C:099AH         LINE#         139
+  C:09AAH         LINE#         140
+  C:09ADH         LINE#         141
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                  03/03/2022  20:13:11  PAGE 4
+
+
+  C:09B0H         LINE#         142
+  C:09B0H         LINE#         143
+  C:09B3H         LINE#         144
+  C:09C2H         LINE#         145
+  C:09C7H         LINE#         146
+  C:09C7H         LINE#         148
+  C:09CAH         LINE#         150
+  C:09CCH         LINE#         151
+  -------         ENDPROC       _I2C_RCV
+  -------         PROC          _RTC_SETTIME
+  D:0007H         SYMBOL        hh
+  D:0005H         SYMBOL        mm
+  D:0003H         SYMBOL        ss
+  -------         DO            
+  D:0029H         SYMBOL        buffer
+  -------         ENDDO         
+  C:0A54H         LINE#         153
+  C:0A54H         LINE#         154
+  C:0A54H         LINE#         156
+  C:0A57H         LINE#         157
+  C:0A59H         LINE#         158
+  C:0A5BH         LINE#         159
+  C:0A5DH         LINE#         160
+  C:0A60H         LINE#         161
+  C:0A63H         LINE#         162
+  -------         ENDPROC       _RTC_SETTIME
+  -------         PROC          _RTC_READTIME
+  D:001AH         SYMBOL        hh
+  D:001DH         SYMBOL        mm
+  D:0020H         SYMBOL        ss
+  -------         DO            
+  D:0023H         SYMBOL        buffer
+  -------         ENDDO         
+  C:09CDH         LINE#         165
+  C:09D3H         LINE#         166
+  C:09D3H         LINE#         167
+  C:09E6H         LINE#         169
+  C:09F8H         LINE#         171
+  C:0A03H         LINE#         172
+  C:0A0EH         LINE#         173
+  -------         ENDPROC       _RTC_READTIME
+  -------         ENDMOD        MAIN
+
+  -------         MODULE        ?C?COPY
+  C:08D0H         PUBLIC        ?C?COPY
+  -------         ENDMOD        ?C?COPY
+
+  -------         MODULE        ?C?CLDOPTR
+  C:08F6H         PUBLIC        ?C?CLDOPTR
+  -------         ENDMOD        ?C?CLDOPTR
+
+  -------         MODULE        ?C?CSTPTR
+  C:0923H         PUBLIC        ?C?CSTPTR
+  -------         ENDMOD        ?C?CSTPTR
+
+  -------         MODULE        ?C?CSTOPTR
+  C:0935H         PUBLIC        ?C?CSTOPTR
+BL51 BANKED LINKER/LOCATER V6.22.2.0                                                  03/03/2022  20:13:11  PAGE 5
+
+
+  -------         ENDMOD        ?C?CSTOPTR
+
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_RTC_READTIME?MAIN
+
+******************************************************************************
+* RESTRICTED VERSION WITH 0800H BYTE CODE SIZE LIMIT; USED: 013BH BYTE (15%) *
+******************************************************************************
+
+Program Size: data=57.0 xdata=65279 code=673
+LINK/LOCATE RUN COMPLETE.  1 WARNING(S),  0 ERROR(S)
