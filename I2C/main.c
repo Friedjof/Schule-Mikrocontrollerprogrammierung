@@ -14,6 +14,9 @@ Aenderungen:
 *****************************************************************************/
 /******************* Text im Quelltext einbinden *********************/
 #include "REG517A.h"
+#include "lcd_api.h"
+// #include "I2C_api.h"
+#include <string.h>
 
 /*************************** Konstanten ******************************/
 volatile unsigned char xdata xmem[0x0feff] _at_ 0;
@@ -28,6 +31,12 @@ char i2c_reg; // S0 = 0x55 (set effective own address to AAh)
 char i2c_s1;  // Select internal register S2
 char i2c_reg; // System Clock is 12 MHz; SCL = 90 kHz
 char i2c_s1;  // Enable interface and select S0
+
+int counter = 0;
+int richtung = 0;
+int zaehler = 0;
+
+char incl = 0x00;
 
 /************************** Prototypen *******************************/
 #ifndef _RTC_I2C
@@ -44,11 +53,20 @@ char i2c_s1;  // Enable interface and select S0
 
 void main()
 {
+	char *string01 = "Hello World";
+	
 	// init i2c bus
 	i2c_init();
 	
 	// init RTC
-	rtc_settime(0x00, 0x00, 0x00);
+	// rtc_settime(0x00, 0x00, 0x00);
+	
+	// Init LCD
+	Init_LCD();
+	
+	print_str_lcd(string01);
+	
+	cmd = 0x50;
 	
 	while (1)
 	{
@@ -65,6 +83,7 @@ void i2c_init()
   i2c_reg = 0x1c; // System Clock is 12 MHz; SCL = 90 kHz
   i2c_s1 = 0x0c1; // Enable interface and select S0
 }
+
 
 void i2c_xmit(unsigned char slave_addr, unsigned char length, unsigned char * buffer)
 {
@@ -87,6 +106,7 @@ void i2c_xmit(unsigned char slave_addr, unsigned char length, unsigned char * bu
   while ((i2c_s1 & 0x80) !=0);          // poll for ready
  i2c_s1 = 0x0c3; // sTOP
 }
+
 
 unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr, unsigned char length, unsigned char * buffer)
 {
@@ -151,6 +171,7 @@ unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr, unsigne
 }
 
 
+
 void rtc_settime(unsigned char hh, unsigned char mm, unsigned char ss)
 {
   unsigned char buffer[6];
@@ -163,6 +184,7 @@ void rtc_settime(unsigned char hh, unsigned char mm, unsigned char ss)
   i2c_xmit(RTC_ADDR,6,buffer);
 }
 
+
 void rtc_readtime(unsigned char *hh, unsigned char *mm, unsigned char *ss)
 {
   unsigned char buffer[6] = {0,1,2,3,4,5};
@@ -172,4 +194,132 @@ void rtc_readtime(unsigned char *hh, unsigned char *mm, unsigned char *ss)
   *ss = buffer[1];// & 0x3F;
   *mm = buffer[2];
   *hh = buffer[3];
+}
+
+void Timer0_ISR() interrupt 1
+{
+	counter--;
+	if(counter<=0)
+	{
+		if(richtung == 0)
+		{
+			if(zaehler < 10000)
+			{
+				zaehler++;
+			}
+			else
+			{
+				zaehler = 9999;
+				richtung = 1;
+			};
+			counter = 1;
+	  }
+		else if(richtung == 1)
+		{
+			if(zaehler > 0)
+			{
+				zaehler--;
+			}
+			else
+			{
+				zaehler = 0;
+				richtung = 0;
+			};
+			counter = 1;			
+		}
+		else
+		{
+		}
+	}
+	else
+	{
+		return;
+	}
+}
+
+
+void Init_LCD()
+{
+	int index1;
+
+	//Funktion definieren: 2  zeilig, 5x7 Dots
+	cmd = 0x38;
+	for(index1=0;index1<7;index1++);//ca. 50ys warten (mind. 39)
+	//Display ON,Cursor OFF, Blink OFF
+	cmd = 0x0C;
+	for(index1=0;index1<7;index1++);//ca. 50ys warten
+	
+	Clear_LCD();
+	
+	//Entry Mode: autom Increment ohne Shift
+	cmd = 0x06;
+	for(index1=0;index1<7;index1++);//ca. 50ys warten
+}
+
+void Clear_LCD()
+{
+	int index1;
+	cmd = 0x01;
+	for(index1=0;index1<370;index1++);//ca. 2ms warten (mind. 1.57)
+}
+
+
+void write_char(char value)
+{
+	int index1;
+  if(value == 0)
+	{
+		return;
+	}
+	if(value != '\n')
+	{
+		chr = value;
+	}
+	else
+	{
+		cmd = 0xC0; //->  Adresse auf die zweite Zeile setzen: 1 ( 1 0 0   0 0 0 0) 
+			    //-> DRAM Adresse 0x40!
+	}
+	for(index1=0;index1<7;index1++);//ca. 50ys warten
+}
+
+void print_str_lcd(char* value)
+{
+	int laenge = strlen(value);
+	int index = 0;
+	int index2 = 0;
+	int index3 = 0;
+	Clear_LCD();
+
+	for(index = 0;index < laenge;index++)
+	{
+		//Erste Zeile
+		if(index3 < 16 || (index3 > 16 && index3 < 32))
+		{
+				if(value[index] == '\n' && index3 < 16)
+				{
+					index3 = 16;
+				}
+				else if(value[index] == '\n' && index3 > 16)
+				{
+					index3 = 32;
+				}
+				write_char(value[index]);
+
+
+
+				index3++;
+		}//Zweite Zeile
+		else if(index3==16)
+		{
+				write_char('\n');
+				write_char(value[index]);			
+				index3++;
+		}
+		else if(index3 >= 32)
+		{
+		 Clear_LCD();
+		 index3 = -1;
+		}
+	}
 }
