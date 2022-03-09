@@ -15,26 +15,20 @@ Aenderungen:
 /******************* Text im Quelltext einbinden *********************/
 #include "REG517A.h"
 #include "lcd_api.h"
-// #include "I2C_api.h"
 #include <string.h>
 
 /*************************** Konstanten ******************************/
+volatile unsigned char xdata i2c_reg _at_ 0xFFA0;
+volatile unsigned char xdata i2c_s1 _at_ 0xFFA1;
 volatile unsigned char xdata xmem[0x0feff] _at_ 0;
 unsigned char rtc_buf[16];
 
-#define RTC_ADDR 0x0a0
+#define RTC_ADDR 0x0A0
 
 /*********************** globale Variablen ***************************/
 
-char i2c_s1;  // Select internal register S0
-char i2c_reg; // S0 = 0x55 (set effective own address to AAh)
-char i2c_s1;  // Select internal register S2
-char i2c_reg; // System Clock is 12 MHz; SCL = 90 kHz
-char i2c_s1;  // Enable interface and select S0
-
-int counter = 0;
-int richtung = 0;
-int zaehler = 0;
+int timer = 0;
+int display = 0;
 
 char incl = 0x00;
 
@@ -49,11 +43,18 @@ char incl = 0x00;
 	void rtc_readtime(unsigned char *hh, unsigned char *mm, unsigned char *ss);
 #endif
 
+void timer_init();
+void clockString(char* value, unsigned char *hh, unsigned char *mm, unsigned char *ss);
+
 /************************ Hauptprogramm ******************************/
 
 void main()
 {
-	char *string01 = "Hello World";
+	char displayTime[8] = "hh:mm:ss";
+	
+	unsigned char ss;
+	unsigned char mm;
+	unsigned char hh;
 	
 	// init i2c bus
 	i2c_init();
@@ -64,16 +65,76 @@ void main()
 	// Init LCD
 	Init_LCD();
 	
-	print_str_lcd(string01);
+	// Init Timer 0
+	timer_init();
+	
+	print_str_lcd(&displayTime);
 	
 	cmd = 0x50;
 	
 	while (1)
 	{
+		rtc_readtime(&hh, &mm, &ss);
 		
+		if (timer - display > 100)
+		{
+			clockString(&displayTime, &hh, &mm, &ss);
+			print_str_lcd(&displayTime);
+			display = timer;
+		}
 	}
 }
 
+void clockString(char* value, unsigned char *hh, unsigned char *mm, unsigned char *ss)
+{
+	char index;
+	unsigned char vss = *ss;
+	
+	for (index = 0x00; index < 2; index++)
+	{
+		value[7 - index] = 0x30 + (vss % 10);
+		vss = vss / 10;
+	}
+}
+
+void timer_init()
+{
+    // Timer 0 ausgeschaltet
+    TR0 = 0;
+    // Überlauf zurückgesetzt von Timer 0
+    TF0 = 0;
+    // IR gelöscht von Timer 0
+    IT0 = 0;
+    // Timer 1: Timer, 8bit prescale, Timer0: Timer, 16bit
+    TMOD = 0x01;
+    // Setze den Startwert von Timer 0 auf 64535
+    // Somit benötigt der Timer eine ms für einen Durchlauf
+    TL0 = 0x17;
+    TH0 = 0x0FC;
+    
+    // IR für Timer 0 aktivieren
+    ET0 = 1;
+    
+    // Interrupt System aktivieren
+    EAL = 1;
+    // Timer 0 aktiv
+    TR0 = 1;
+}
+
+void IRQ_Timer0() interrupt 1
+{
+    TR0 = 0;
+    EAL = 0;
+
+    // Der Counter für die messbare Zeit wird um eins erhöht
+    timer++;
+
+    TL0 = 0x17;
+    TH0 = 0x0FC;
+
+    EAL = 1;
+    TR0 = 1;
+}
 //initialisiert den I2C Bus
 void i2c_init()
 {
@@ -114,29 +175,30 @@ unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr, unsigne
   unsigned char error = 0;
   while ((i2c_s1 & 1) ==0) {}; // wait for free bus
 
+	i2c_reg = slave_addr;
   i2c_s1 = 0x0c5;  //START Condition
-  i2c_reg = slave_addr;
-  //wait for Slave
-    while ((i2c_s1 & 0x80) !=0);
 
-    if ((i2c_s1 & 0x08) !=0) 
+  //wait for Slave
+  while (i2c_s1 & 0x80);
+
+  if (i2c_s1 & 0x08) 
 	{ // no slave ACK
-      i2c_s1 = 0x0c3; // sTOP
-      return 1;
-    }
+		i2c_s1 = 0x0c3; // sTOP
+		return 1;
+	}
 	else
 	{}
-    //Registeradresse
-    i2c_reg = word_addr;
+	//Registeradresse
+	i2c_reg = word_addr;
 
 	//Wait for Slave
-    while ((i2c_s1 & 0x80) !=0);
+	while (i2c_s1 & 0x80);
 
-    if ((i2c_s1 & 0x08) !=0) 
+  if (i2c_s1 & 0x08) 
 	{ // no slave ACK
-      i2c_s1 = 0x0c3; // sTOP
-      return 1;
-    }
+		i2c_s1 = 0x0c3; // sTOP
+		return 1;
+	}
 	else
 	{}
 
@@ -156,9 +218,9 @@ unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr, unsigne
 	{}
 
 	//Byte lesen
-  	buffer[i] = i2c_reg;
+  buffer[i] = i2c_reg;
   }
-  if (error == 0)
+  if (!error)
   {
     i2c_s1 = 0x040; // prepare NACK
     buffer[i] = i2c_reg; // read final byte
@@ -169,8 +231,6 @@ unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr, unsigne
 
   return error;
 }
-
-
 
 void rtc_settime(unsigned char hh, unsigned char mm, unsigned char ss)
 {
@@ -189,54 +249,12 @@ void rtc_readtime(unsigned char *hh, unsigned char *mm, unsigned char *ss)
 {
   unsigned char buffer[6] = {0,1,2,3,4,5};
 
-  i2c_rcv(RTC_ADDR,2,6,buffer);
+  i2c_rcv(RTC_ADDR, 2, 6, buffer);
 
   *ss = buffer[1];// & 0x3F;
   *mm = buffer[2];
   *hh = buffer[3];
 }
-
-void Timer0_ISR() interrupt 1
-{
-	counter--;
-	if(counter<=0)
-	{
-		if(richtung == 0)
-		{
-			if(zaehler < 10000)
-			{
-				zaehler++;
-			}
-			else
-			{
-				zaehler = 9999;
-				richtung = 1;
-			};
-			counter = 1;
-	  }
-		else if(richtung == 1)
-		{
-			if(zaehler > 0)
-			{
-				zaehler--;
-			}
-			else
-			{
-				zaehler = 0;
-				richtung = 0;
-			};
-			counter = 1;			
-		}
-		else
-		{
-		}
-	}
-	else
-	{
-		return;
-	}
-}
-
 
 void Init_LCD()
 {
