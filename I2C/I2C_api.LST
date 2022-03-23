@@ -1,9 +1,10 @@
-C51 COMPILER V9.60.0.0   I2C_API                                                           03/03/2022 19:55:30 PAGE 1   
+C51 COMPILER V9.60.0.0   I2C_API                                                           03/04/2022 11:43:45 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE I2C_API
-OBJECT MODULE PLACED IN I2C_api.OBJ
-COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE I2C_api.C OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+OBJECT MODULE PLACED IN .\I2C_api.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\I2C_api\I2C_api.C OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.
+                    -\I2C_api.lst) TABS(2) OBJECT(.\I2C_api.obj)
 
 line level    source
 
@@ -11,15 +12,15 @@ line level    source
    2          void i2c_init(void)
    3          {
    4   1        i2c_s1 = 0x80;  // Select internal register S0
-*** ERROR C202 IN LINE 4 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 4 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
    5   1        i2c_reg = 0x55; // S0 = 0x55 (set effective own address to AA)
-*** ERROR C202 IN LINE 5 OF I2C_api.C: 'i2c_reg': undefined identifier
+*** ERROR C202 IN LINE 5 OF ..\I2C_api\I2C_api.C: 'i2c_reg': undefined identifier
    6   1        i2c_s1 = 0x0a0; // Select internal register S2
-*** ERROR C202 IN LINE 6 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 6 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
    7   1        i2c_reg = 0x1c; // System Clock is 12 MHz; SCL = 90 kHz
-*** ERROR C202 IN LINE 7 OF I2C_api.C: 'i2c_reg': undefined identifier
+*** ERROR C202 IN LINE 7 OF ..\I2C_api\I2C_api.C: 'i2c_reg': undefined identifier
    8   1        i2c_s1 = 0x0c1; // Enable interface and select S0
-*** ERROR C202 IN LINE 8 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 8 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
    9   1      }
   10          
   11          //send Byte to slave
@@ -27,24 +28,24 @@ line level    source
   13          {
   14   1        unsigned char i;
   15   1        while ((i2c_s1 & 1) ==0) {};
-*** ERROR C202 IN LINE 15 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 15 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   16   1        i2c_s1 = 0x0c5;         // START condition
-*** ERROR C202 IN LINE 16 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 16 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   17   1        i2c_reg = slave_addr;   // Set slave address
-*** ERROR C202 IN LINE 17 OF I2C_api.C: 'i2c_reg': undefined identifier
+*** ERROR C202 IN LINE 17 OF ..\I2C_api\I2C_api.C: 'i2c_reg': undefined identifier
   18   1        for (i=0; i<length; i++)
   19   1        {
   20   2          while ((i2c_s1 & 0x80) !=0);        // poll for ready
-*** ERROR C202 IN LINE 20 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 20 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   21   2          if ((i2c_s1 & 0x08) !=0) break;     // if ack, leave loop
-*** ERROR C202 IN LINE 21 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 21 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   22   2          i2c_reg = buffer[i];                // send data
-*** ERROR C202 IN LINE 22 OF I2C_api.C: 'i2c_reg': undefined identifier
+*** ERROR C202 IN LINE 22 OF ..\I2C_api\I2C_api.C: 'i2c_reg': undefined identifier
   23   2        }
   24   1        while ((i2c_s1 & 0x80) !=0);          // poll for ready
-*** ERROR C202 IN LINE 24 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 24 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   25   1       i2c_s1 = 0x0c3; // sTOP
-*** ERROR C202 IN LINE 25 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 25 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   26   1      }
   27          
   28          //reveive Byte from Slave
@@ -56,61 +57,61 @@ line level    source
   34   1        unsigned char i;
   35   1        unsigned char error = 0;
   36   1        while ((i2c_s1 & 1) ==0) {}; // wait for free bus
-*** ERROR C202 IN LINE 36 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 36 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   37   1      
   38   1        i2c_s1 = 0x0c5;
-*** ERROR C202 IN LINE 38 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 38 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   39   1        i2c_reg = slave_addr;
-*** ERROR C202 IN LINE 39 OF I2C_api.C: 'i2c_reg': undefined identifier
-C51 COMPILER V9.60.0.0   I2C_API                                                           03/03/2022 19:55:30 PAGE 2   
+C51 COMPILER V9.60.0.0   I2C_API                                                           03/04/2022 11:43:45 PAGE 2   
 
+*** ERROR C202 IN LINE 39 OF ..\I2C_api\I2C_api.C: 'i2c_reg': undefined identifier
   40   1          while ((i2c_s1 & 0x80) !=0);
-*** ERROR C202 IN LINE 40 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 40 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   41   1          if ((i2c_s1 & 0x08) !=0) { // no slave ACK
-*** ERROR C202 IN LINE 41 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 41 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   42   2            i2c_s1 = 0x0c3; // sTOP
-*** ERROR C202 IN LINE 42 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 42 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   43   2            return 1;
   44   2          }
   45   1        i2c_reg = word_addr;
-*** ERROR C202 IN LINE 45 OF I2C_api.C: 'i2c_reg': undefined identifier
+*** ERROR C202 IN LINE 45 OF ..\I2C_api\I2C_api.C: 'i2c_reg': undefined identifier
   46   1          while ((i2c_s1 & 0x80) !=0);
-*** ERROR C202 IN LINE 46 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 46 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   47   1          if ((i2c_s1 & 0x08) !=0) { // no slave ACK
-*** ERROR C202 IN LINE 47 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 47 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   48   2            i2c_s1 = 0x0c3; // sTOP
-*** ERROR C202 IN LINE 48 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 48 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   49   2            return 1;
   50   2          }
   51   1      
   52   1        i2c_s1 = 0x0c5;         // START condition
-*** ERROR C202 IN LINE 52 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 52 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   53   1       
   54   1        i2c_reg = slave_addr+1; // Set slave address
-*** ERROR C202 IN LINE 54 OF I2C_api.C: 'i2c_reg': undefined identifier
+*** ERROR C202 IN LINE 54 OF ..\I2C_api\I2C_api.C: 'i2c_reg': undefined identifier
   55   1        for (i=0; i<length; i++)
   56   1        {
   57   2          while ((i2c_s1 & 0x80) !=0);  // poll for ready
-*** ERROR C202 IN LINE 57 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 57 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   58   2          if ((i2c_s1 & 0x08) !=0) { // no slave ACK
-*** ERROR C202 IN LINE 58 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 58 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   59   3            error = 1;
   60   3            break;
   61   3          }
   62   2        buffer[i] = i2c_reg;
-*** ERROR C202 IN LINE 62 OF I2C_api.C: 'i2c_reg': undefined identifier
+*** ERROR C202 IN LINE 62 OF ..\I2C_api\I2C_api.C: 'i2c_reg': undefined identifier
   63   2        }
   64   1        if (error == 0)
   65   1        {
   66   2          i2c_s1 = 0x040; // prepare NACK
-*** ERROR C202 IN LINE 66 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 66 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   67   2          buffer[i] = i2c_reg; // read final byte
-*** ERROR C202 IN LINE 67 OF I2C_api.C: 'i2c_reg': undefined identifier
+*** ERROR C202 IN LINE 67 OF ..\I2C_api\I2C_api.C: 'i2c_reg': undefined identifier
   68   2          while ((i2c_s1 & 0x80) !=0);
-*** ERROR C202 IN LINE 68 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 68 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   69   2        }
   70   1        i2c_s1 = 0x0c3; // sTOP
-*** ERROR C202 IN LINE 70 OF I2C_api.C: 'i2c_s1': undefined identifier
+*** ERROR C202 IN LINE 70 OF ..\I2C_api\I2C_api.C: 'i2c_s1': undefined identifier
   71   1        return error;
   72   1      }
 

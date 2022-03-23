@@ -1,0 +1,155 @@
+C51 COMPILER V9.60.0.0   I2C_RTC_API                                                       03/04/2022 11:43:45 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE I2C_RTC_API
+OBJECT MODULE PLACED IN .\I2C_RTC_api.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\I2C_RTC_api\I2C_RTC_api.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND
+                    - PRINT(.\I2C_RTC_api.lst) TABS(2) OBJECT(.\I2C_RTC_api.obj)
+
+line level    source
+
+   1          volatile unsigned char xdata i2c_reg _at_ 0xffa0;
+   2          volatile unsigned char xdata i2c_s1 _at_ 0xffa1 ;
+   3          #define RTC_ADDR 0x0a0
+   4          
+   5          volatile unsigned char xdata xmem[0x0feff] _at_ 0;
+   6          unsigned char rtc_buf[16];
+   7          
+   8          //initialisiert den I2C Bus
+   9          void i2c_init()
+  10          {
+  11   1        i2c_s1 = 0x80;  // Select internal register S0
+  12   1        i2c_reg = 0x55; // S0 = 0x55 (set effective own address to AAh)
+  13   1        i2c_s1 = 0x0a0; // Select internal register S2
+  14   1        i2c_reg = 0x1c; // System Clock is 12 MHz; SCL = 90 kHz
+  15   1        i2c_s1 = 0x0c1; // Enable interface and select S0
+  16   1      }
+  17          
+  18          void i2c_xmit(unsigned char slave_addr, unsigned char length,
+  19                        unsigned char * buffer)
+  20          {
+  21   1        unsigned char i;
+  22   1        //Waiting for Bus free
+  23   1        while ((i2c_s1 & 1) ==0) {};
+  24   1        i2c_s1 = 0x0c5;         // START condition
+  25   1      
+  26   1        i2c_reg = slave_addr;   // Set slave address
+  27   1      
+  28   1        for (i=0; i<length; i++)
+  29   1        {
+  30   2          //wait for Client
+  31   2          while ((i2c_s1 & 0x80) !=0);        // poll for ready
+  32   2          if ((i2c_s1 & 0x08) !=0) 
+  33   2          break;                // if ack, leave loop
+  34   2          //send Byte
+  35   2          i2c_reg = buffer[i];                // send data
+  36   2        }
+  37   1        while ((i2c_s1 & 0x80) !=0);          // poll for ready
+  38   1       i2c_s1 = 0x0c3; // sTOP
+  39   1      }
+  40          
+  41          unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr,
+  42                                unsigned char length, unsigned char * buffer)
+  43          {
+  44   1        unsigned char i;
+  45   1        unsigned char error = 0;
+  46   1        while ((i2c_s1 & 1) ==0) {}; // wait for free bus
+  47   1      
+  48   1        i2c_s1 = 0x0c5;  //START Condition
+  49   1        i2c_reg = slave_addr;
+  50   1        //wait for Slave
+  51   1          while ((i2c_s1 & 0x80) !=0);
+  52   1      
+  53   1          if ((i2c_s1 & 0x08) !=0) 
+  54   1        { // no slave ACK
+C51 COMPILER V9.60.0.0   I2C_RTC_API                                                       03/04/2022 11:43:45 PAGE 2   
+
+  55   2            i2c_s1 = 0x0c3; // sTOP
+  56   2            return 1;
+  57   2          }
+  58   1        else
+  59   1        {}
+  60   1          //Registeradresse
+  61   1          i2c_reg = word_addr;
+  62   1      
+  63   1        //Wait for Slave
+  64   1          while ((i2c_s1 & 0x80) !=0);
+  65   1      
+  66   1          if ((i2c_s1 & 0x08) !=0) 
+  67   1        { // no slave ACK
+  68   2            i2c_s1 = 0x0c3; // sTOP
+  69   2            return 1;
+  70   2          }
+  71   1        else
+  72   1        {}
+  73   1      
+  74   1        i2c_s1 = 0x0c5;  // START condition
+  75   1       
+  76   1        i2c_reg = slave_addr+1; // Set slave address
+  77   1        for (i=0; i<length; i++)
+  78   1        {
+  79   2          //wait for Slave
+  80   2          while ((i2c_s1 & 0x80) !=0);  // poll for ready
+  81   2      
+  82   2          if ((i2c_s1 & 0x08) !=0) { // no slave ACK
+  83   3            error = 1;
+  84   3            break;
+  85   3          }
+  86   2        else
+  87   2        {}
+  88   2      
+  89   2        //Byte lesen
+  90   2          buffer[i] = i2c_reg;
+  91   2        }
+  92   1        if (error == 0)
+  93   1        {
+  94   2          i2c_s1 = 0x040; // prepare NACK
+  95   2          buffer[i] = i2c_reg; // read final byte
+  96   2          while ((i2c_s1 & 0x80) !=0);
+  97   2        }
+  98   1      
+  99   1        i2c_s1 = 0x0c3; // sTOP
+ 100   1      
+ 101   1        return error;
+ 102   1      }
+ 103          
+ 104          
+ 105          
+ 106          void rtc_settime(unsigned char hh, unsigned char mm, unsigned char ss)
+ 107          {
+ 108   1        unsigned char buffer[6];
+ 109   1        buffer[0] = 2;
+ 110   1        buffer[1] = ss;
+ 111   1        buffer[2] = mm;
+ 112   1        buffer[3] = hh;
+ 113   1        buffer[4] = 1;
+ 114   1        buffer[5] = 1;
+ 115   1        i2c_xmit(RTC_ADDR,6,buffer);
+ 116   1      }
+C51 COMPILER V9.60.0.0   I2C_RTC_API                                                       03/04/2022 11:43:45 PAGE 3   
+
+ 117          
+ 118          void rtc_readtime(unsigned char *hh, unsigned char *mm, unsigned char *ss)
+ 119          {
+ 120   1        unsigned char buffer[6] = {0,1,2,3,4,5};
+ 121   1      
+ 122   1        i2c_rcv(RTC_ADDR,2,6,buffer);
+ 123   1      
+ 124   1        *ss = buffer[1];// & 0x3F;
+ 125   1        *mm = buffer[2];
+ 126   1        *hh = buffer[3];
+ 127   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    366    ----
+   CONSTANT SIZE    =      6    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     16      30
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

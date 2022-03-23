@@ -1,380 +1,392 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              03/09/2022 21:10:50 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 11:40:06 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
 OBJECT MODULE PLACED IN main.OBJ
-COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE MOD517 DEBUG OBJECTEXTEND TABS(2)
 
 line level    source
 
    1          /*****************************************************************************
    2          h e i n r i c h -h e r t z -b e r u f s k o l l e g  d e r  s t a d t  b o n n
-   3          Autor:        Friedjof Noweck
-   4          Klasse:       IH119
-   5          Datum:        2022-02-19 Sa
-   6          Datei:        main.c
+   3          Autor:      Fabian Bonk
+   4          Klasse:     IH119
+   5          Datum:      02.03.2022
+   6          Datei:      
    7          Einsatz:    
-   8          Beschreibung: 
+   8          Beschreibung: Zeit und Datum auf LCD Display Anzeigen
    9          Funktionen:   
   10          ******************************************************************************
   11          Aenderungen:
-  12          2022-02-19 Init project
-  13          2022-03-03 Add libraries
-  14          *****************************************************************************/
-  15          /******************* Text im Quelltext einbinden *********************/
-  16          #include "REG517A.h"
+  12          
+  13          *****************************************************************************/
+  14          /******************* Text im Quelltext einbinden *********************/
+  15          #include "REG517A.h"
+  16          #include "I2C_api.h"
   17          #include "lcd_api.h"
-  18          #include <string.h>
-  19          
+  18          #include "RTC_api.h"
+  19          #include <string.h>
   20          /*************************** Konstanten ******************************/
-  21          volatile unsigned char xdata i2c_reg _at_ 0xFFA0;
-  22          volatile unsigned char xdata i2c_s1 _at_ 0xFFA1;
-  23          volatile unsigned char xdata xmem[0x0feff] _at_ 0;
-  24          unsigned char rtc_buf[16];
+  21          volatile unsigned char xdata i2c_reg _at_ 0xffa0;
+  22          volatile unsigned char xdata i2c_s1 _at_ 0xffa1;
+  23          
+  24          unsigned char xdata xmem[0x0feff] _at_ 0;
   25          
-  26          #define RTC_ADDR 0x0A0
-  27          
-  28          /*********************** globale Variablen ***************************/
-  29          
-  30          int timer = 0;
-  31          int display = 0;
-  32          
-  33          char incl = 0x00;
-  34          
-  35          /************************** Prototypen *******************************/
-  36          #ifndef _RTC_I2C
-  37            #define _RTC_I2C
-  38            
-  39            void i2c_init();
-  40            void i2c_xmit(unsigned char slave_addr, unsigned char length, unsigned char * buffer);
-  41            unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr, unsigned char length, unsigned c
-             -har * buffer);
-  42            void rtc_settime(unsigned char hh, unsigned char mm, unsigned char ss);
-  43            void rtc_readtime(unsigned char *hh, unsigned char *mm, unsigned char *ss);
-  44          #endif
-  45          
-  46          void timer_init();
-  47          void clockString(char* value, unsigned char *hh, unsigned char *mm, unsigned char *ss);
-  48          
-  49          /************************ Hauptprogramm ******************************/
-  50          
-  51          void main()
-  52          {
-  53   1        char displayTime[8] = "hh:mm:ss";
-  54   1        
-C51 COMPILER V9.60.0.0   MAIN                                                              03/09/2022 21:10:50 PAGE 2   
+  26          volatile char xdata cmd _at_ 0xFF80;
+  27          volatile char xdata chr _at_ 0xFF82;
+  28          
+  29          /*********************** globale Variablen ***************************/
+  30          unsigned char rtc_buf[16];
+  31          unsigned char RTC_ADDR = 0x0a0;
+  32          char Text[] = "Mo, 11.11.11,\n11:11:11:00 Uhr";
+  33          
+  34          /************************** Prototypen *******************************/
+  35          void Einstellungen_LCD();
+  36          void Clear_LCD();
+  37          void Ausgabe(char value); 
+  38          void Display(char* value);
+  39          void Einstellungen_I2C();
+  40          void i2c_xmit(unsigned char slave_addr, unsigned char length,unsigned char * buffer);
+  41          unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr,unsigned char length, unsigned cha
+             -r * buffer);
+  42          void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss)
+             -;
+  43          void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned cha
+             -r *ss, unsigned char *ms);
+  44          void Wochentag (unsigned char t);
+  45          /************************ Hauptprogramm ******************************/
+  46          
+  47          void main()
+  48          {
+  49   1        unsigned char ss = 0x00;
+  50   1        unsigned char mm = 0x00;
+  51   1        unsigned char hh = 0x00;
+  52   1        unsigned char dt = 0x00;
+C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 11:40:06 PAGE 2   
 
-  55   1        unsigned char ss;
-  56   1        unsigned char mm;
-  57   1        unsigned char hh;
+  53   1        unsigned char mt = 0x00;
+  54   1        unsigned char ms = 0x00;
+  55   1        unsigned char yy = 0x00;
+  56   1        
+  57   1        int index;
   58   1        
-  59   1        // init i2c bus
-  60   1        i2c_init();
-  61   1        
-  62   1        // init RTC
-  63   1        // rtc_settime(0x00, 0x00, 0x00);
-  64   1        
-  65   1        // Init LCD
-  66   1        Init_LCD();
-  67   1        
-  68   1        // Init Timer 0
-  69   1        timer_init();
-  70   1        
-  71   1        print_str_lcd(&displayTime);
-  72   1        
-  73   1        cmd = 0x50;
-  74   1        
-  75   1        while (1)
-  76   1        {
-  77   2          rtc_readtime(&hh, &mm, &ss);
-  78   2          
-  79   2          if (timer - display > 100)
-  80   2          {
-  81   3            clockString(&displayTime, &hh, &mm, &ss);
-  82   3            print_str_lcd(&displayTime);
-  83   3            display = timer;
-  84   3          }
-  85   2        }
-  86   1      }
-  87          
-  88          void clockString(char* value, unsigned char *hh, unsigned char *mm, unsigned char *ss)
-  89          {
-  90   1        char index;
-  91   1        unsigned char vss = *ss;
-  92   1        
-  93   1        for (index = 0x00; index < 2; index++)
-  94   1        {
-  95   2          value[7 - index] = 0x30 + (vss % 10);
-  96   2          vss = vss / 10;
-  97   2        }
-  98   1      }
-*** WARNING C280 IN LINE 88 OF main.c: 'hh': unreferenced local variable
-*** WARNING C280 IN LINE 88 OF main.c: 'mm': unreferenced local variable
-  99          
- 100          void timer_init()
- 101          {
- 102   1          // Timer 0 ausgeschaltet
- 103   1          TR0 = 0;
- 104   1          // Überlauf zurückgesetzt von Timer 0
- 105   1          TF0 = 0;
- 106   1          // IR gelöscht von Timer 0
- 107   1          IT0 = 0;
- 108   1          // Timer 1: Timer, 8bit prescale, Timer0: Timer, 16bit
- 109   1          TMOD = 0x01;
- 110   1          // Setze den Startwert von Timer 0 auf 64535
- 111   1          // Somit benötigt der Timer eine ms für einen Durchlauf
- 112   1          TL0 = 0x17;
- 113   1          TH0 = 0x0FC;
- 114   1          
-C51 COMPILER V9.60.0.0   MAIN                                                              03/09/2022 21:10:50 PAGE 3   
+  59   1        Clear_LCD();
+  60   1        Einstellungen_LCD();
+  61   1        Einstellungen_I2C();
+  62   1        
+  63   1        // 2022-12-31 23:59:55,00
+  64   1        rtc_settime( 0x31, 0x12, 0x23, 0x59, 0x55);
+  65   1        
+  66   1        // 2023-12-31 23:59:55,00
+  67   1        rtc_settime( 0xF1, 0x12, 0x23, 0x59, 0x55);
+  68   1      
+  69   1        while(1)
+  70   1        {
+  71   2          
+  72   2          rtc_readtime(&dt, &mt, &hh, &mm, &ss, &ms);
+  73   2          
+  74   2          //Millisekunden
+  75   2          Text[24] = (ms & 0x0F)+ 48;
+  76   2          Text[23] = ((ms & 0xF0) >> 0x04) + 48;
+  77   2          
+  78   2          //Sekunden
+  79   2          Text[21] = (ss & 0x0F) + 48;
+  80   2          Text[20] = ((ss & 0xF0) >> 0x04) + 48;
+  81   2          
+  82   2          //Minuten
+  83   2          Text[18] = (mm & 0x0F) + 48;
+  84   2          Text[17] = ((mm & 0xF0) >> 0x04) + 48;
+  85   2          
+  86   2          //Stunden
+  87   2          Text[15] = (hh & 0x0F) + 48;
+  88   2          Text[14] = ((hh & 0xF0) >> 0x04) + 48;
+  89   2          
+  90   2          //Tag
+  91   2          Text[5] = (dt & 0x0F) + 48;
+  92   2          Text[4] = ((dt & 0x30) >> 0x04) + 48;
+  93   2          
+  94   2          //Jahr
+  95   2          // Dies ist noch zu testen
+  96   2          yy = ((dt & 0xD0) >> 0x06) + 20;
+  97   2          for (index = 0x00; index < 2; index++)
+  98   2          {
+  99   3            Text[11 - index] = (yy % 10) + 0x30;
+ 100   3            yy /= 10;
+ 101   3          }
+ 102   2          
+ 103   2          //Text[10] = ((dt & 0xD0) >> 0x06) + 0x30;
+ 104   2          
+ 105   2          //Monat
+ 106   2          Text[8] = (mt & 0x0F) + 48;
+ 107   2          Text[7] = ((mt & 0x10) >> 0x04) + 48; 
+ 108   2      
+ 109   2          //Wochentag
+ 110   2          Wochentag((mt & 0xE0) >> 0x05);
+ 111   2          
+ 112   2          Display(Text);
+ 113   2        }
+ 114   1      }
+C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 11:40:06 PAGE 3   
 
- 115   1          // IR für Timer 0 aktivieren
- 116   1          ET0 = 1;
- 117   1          
- 118   1          // Interrupt System aktivieren
- 119   1          EAL = 1;
- 120   1          // Timer 0 aktiv
- 121   1          TR0 = 1;
- 122   1      }
- 123          
- 124          void IRQ_Timer0() interrupt 1
- 125          {
- 126   1          TR0 = 0;
- 127   1          EAL = 0;
- 128   1      
- 129   1          // Der Counter für die messbare Zeit wird um eins erhöht
- 130   1          timer++;
- 131   1      
- 132   1          TL0 = 0x17;
- 133   1          TH0 = 0x0FC;
- 134   1      
- 135   1          EAL = 1;
- 136   1          TR0 = 1;
- 137   1      }
- 138          //initialisiert den I2C Bus
- 139          void i2c_init()
- 140          {
- 141   1        i2c_s1 = 0x80;  // Select internal register S0
- 142   1        i2c_reg = 0x55; // S0 = 0x55 (set effective own address to AAh)
- 143   1        i2c_s1 = 0x0a0; // Select internal register S2
- 144   1        i2c_reg = 0x1c; // System Clock is 12 MHz; SCL = 90 kHz
- 145   1        i2c_s1 = 0x0c1; // Enable interface and select S0
- 146   1      }
- 147          
- 148          
- 149          void i2c_xmit(unsigned char slave_addr, unsigned char length, unsigned char * buffer)
- 150          {
- 151   1        unsigned char i;
- 152   1        //Waiting for Bus free
- 153   1        while ((i2c_s1 & 1) ==0) {};
- 154   1        i2c_s1 = 0x0c5;         // START condition
- 155   1      
- 156   1        i2c_reg = slave_addr;   // Set slave address
- 157   1      
- 158   1        for (i=0; i<length; i++)
- 159   1        {
- 160   2          //wait for Client
- 161   2          while ((i2c_s1 & 0x80) !=0);        // poll for ready
- 162   2          if ((i2c_s1 & 0x08) !=0) 
- 163   2          break;                // if ack, leave loop
- 164   2          //send Byte
- 165   2          i2c_reg = buffer[i];                // send data
- 166   2        }
- 167   1        while ((i2c_s1 & 0x80) !=0);          // poll for ready
- 168   1       i2c_s1 = 0x0c3; // sTOP
- 169   1      }
- 170          
- 171          
- 172          unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr, unsigned char length, unsigned ch
-             -ar * buffer)
- 173          {
- 174   1        unsigned char i;
- 175   1        unsigned char error = 0;
-C51 COMPILER V9.60.0.0   MAIN                                                              03/09/2022 21:10:50 PAGE 4   
+ 115          void Wochentag (unsigned char t)
+ 116          {
+ 117   1        switch(t)
+ 118   1        {
+ 119   2          case 0x00: 
+ 120   2                  Text[0] = 'M';
+ 121   2                  Text[1] = 'o';
+ 122   2            break; 
+ 123   2          case 0x01: 
+ 124   2                  Text[0] = 'D';
+ 125   2                  Text[1] = 'i';
+ 126   2            break;
+ 127   2          case 0x02: 
+ 128   2                 Text[0] = 'M';
+ 129   2                 Text[1] = 'i';
+ 130   2            break;
+ 131   2          case 0x03: 
+ 132   2                 Text[0] = 'D';
+ 133   2                 Text[1] = 'o';
+ 134   2            break;
+ 135   2          case 0x04: 
+ 136   2                 Text[0] = 'F';
+ 137   2                 Text[1] = 'r';
+ 138   2            break;
+ 139   2          case 0x05: 
+ 140   2                 Text[0] = 'S';
+ 141   2                 Text[1] = 'a';
+ 142   2            break;
+ 143   2          case 0x06:
+ 144   2                Text[0] = 'S';
+ 145   2                Text[1] = 'o';
+ 146   2            break;
+ 147   2          default:
+ 148   2            break;
+ 149   2        }
+ 150   1      }
+ 151          void Einstellungen_LCD()
+ 152          {
+ 153   1        int index1;
+ 154   1      
+ 155   1        //Funktion definieren: 2  zeilig, 5x7 Dots, 8 Bit
+ 156   1        cmd = 0x38; 
+ 157   1        for(index1=0;index1<7;index1++);//ca. 50ys warten (mind. 39)
+ 158   1        
+ 159   1        //Display An, Cursor Aus, Blinken aus
+ 160   1        cmd = 0x0C;
+ 161   1        for(index1=0;index1<7;index1++);//ca. 50ys warten
+ 162   1        
+ 163   1        Clear_LCD();
+ 164   1        
+ 165   1        //Entry Mode: autom Increment ohne Shift
+ 166   1        cmd = 0x06;
+ 167   1        for(index1=0;index1<7;index1++);//ca. 50ys warten
+ 168   1      }
+ 169          void Clear_LCD()
+ 170          {
+ 171   1        int index1;
+ 172   1          cmd = 0x02;
+ 173   1          cmd = 0x01;
+ 174   1         for(index1=0;index1<470;index1++){}//ca. 2ms warten (mind. 1.57)
+ 175   1      }
+ 176          void Ausgabe(char value)
+C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 11:40:06 PAGE 4   
 
- 176   1        while ((i2c_s1 & 1) ==0) {}; // wait for free bus
- 177   1      
- 178   1        i2c_reg = slave_addr;
- 179   1        i2c_s1 = 0x0c5;  //START Condition
- 180   1      
- 181   1        //wait for Slave
- 182   1        while (i2c_s1 & 0x80);
- 183   1      
- 184   1        if (i2c_s1 & 0x08) 
- 185   1        { // no slave ACK
- 186   2          i2c_s1 = 0x0c3; // sTOP
- 187   2          return 1;
- 188   2        }
- 189   1        else
- 190   1        {}
- 191   1        //Registeradresse
- 192   1        i2c_reg = word_addr;
- 193   1      
- 194   1        //Wait for Slave
- 195   1        while (i2c_s1 & 0x80);
- 196   1      
- 197   1        if (i2c_s1 & 0x08) 
- 198   1        { // no slave ACK
- 199   2          i2c_s1 = 0x0c3; // sTOP
- 200   2          return 1;
- 201   2        }
- 202   1        else
- 203   1        {}
- 204   1      
- 205   1        i2c_s1 = 0x0c5;  // START condition
- 206   1       
- 207   1        i2c_reg = slave_addr+1; // Set slave address
- 208   1        for (i=0; i<length; i++)
- 209   1        {
- 210   2          //wait for Slave
- 211   2          while ((i2c_s1 & 0x80) !=0);  // poll for ready
- 212   2      
- 213   2          if ((i2c_s1 & 0x08) !=0) { // no slave ACK
- 214   3            error = 1;
- 215   3            break;
- 216   3          }
- 217   2        else
- 218   2        {}
- 219   2      
- 220   2        //Byte lesen
- 221   2        buffer[i] = i2c_reg;
- 222   2        }
- 223   1        if (!error)
- 224   1        {
- 225   2          i2c_s1 = 0x040; // prepare NACK
- 226   2          buffer[i] = i2c_reg; // read final byte
- 227   2          while ((i2c_s1 & 0x80) !=0);
- 228   2        }
- 229   1      
- 230   1        i2c_s1 = 0x0c3; // sTOP
- 231   1      
- 232   1        return error;
- 233   1      }
- 234          
- 235          void rtc_settime(unsigned char hh, unsigned char mm, unsigned char ss)
- 236          {
- 237   1        unsigned char buffer[6];
-C51 COMPILER V9.60.0.0   MAIN                                                              03/09/2022 21:10:50 PAGE 5   
+ 177          {
+ 178   1        int index1;
+ 179   1        if(value == 0)
+ 180   1        {
+ 181   2          return;
+ 182   2        }
+ 183   1        if(value != '\n')
+ 184   1        {
+ 185   2          chr = value;
+ 186   2        }
+ 187   1        else
+ 188   1        {
+ 189   2          cmd = 0xC0; //->  Adresse auf die zweite Zeile setzen: 1 ( 1 0 0   0 0 0 0) 
+ 190   2                //-> DRAM Adresse 0x40!
+ 191   2        }
+ 192   1        for(index1=0;index1<10;index1++);//ca. 50ys warten
+ 193   1        }
+ 194          void Display(char* value)
+ 195          {
+ 196   1        int laenge = strlen(value); //Textlänge wird bestimmt
+ 197   1        int index = 0;
+ 198   1        int index2 = 0;
+ 199   1        int index3 = 0;
+ 200   1        Clear_LCD();
+ 201   1      
+ 202   1        for(index = 0;index < laenge;index++)
+ 203   1        {
+ 204   2        //Erste Zeile
+ 205   2          if(index3 < 16 || (index3 > 16 && index3 < 32))
+ 206   2          {
+ 207   3          if(value[index] == '\n' && index3 < 16)
+ 208   3          {
+ 209   4          index3 = 16;
+ 210   4          }
+ 211   3          else if(value[index] == '\n' && index3 > 16)
+ 212   3          {
+ 213   4          index3 = 32;
+ 214   4        }
+ 215   3        Ausgabe(value[index]);
+ 216   3      
+ 217   3        index3++;
+ 218   3        }//Zweite Zeile
+ 219   2        else if(index3==16)
+ 220   2        {
+ 221   3        Ausgabe('\n');
+ 222   3        Ausgabe(value[index]);
+ 223   3        index3++;
+ 224   3        }
+ 225   2        else if(index3 >= 32)
+ 226   2        {
+ 227   3        Clear_LCD();
+ 228   3        index3 = -1;
+ 229   3        }
+ 230   2        }
+ 231   1        for(index=0;index<370;index++){}
+ 232   1      }
+ 233          void Einstellungen_I2C()
+ 234          {
+ 235   1        i2c_s1 = 0x80;  // Select internal register S0
+ 236   1        i2c_reg = 0x55; // S0 = 0x55 (set effective own address to AAh)
+ 237   1        i2c_s1 = 0x0a0; // Select internal register S2
+ 238   1        i2c_reg = 0x1c; // System Clock is 12 MHz; SCL = 90 kHz
+C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 11:40:06 PAGE 5   
 
- 238   1        buffer[0] = 2;
- 239   1        buffer[1] = ss;
- 240   1        buffer[2] = mm;
- 241   1        buffer[3] = hh;
- 242   1        buffer[4] = 1;
- 243   1        buffer[5] = 1;
- 244   1        i2c_xmit(RTC_ADDR,6,buffer);
- 245   1      }
- 246          
- 247          
- 248          void rtc_readtime(unsigned char *hh, unsigned char *mm, unsigned char *ss)
- 249          {
- 250   1        unsigned char buffer[6] = {0,1,2,3,4,5};
- 251   1      
- 252   1        i2c_rcv(RTC_ADDR, 2, 6, buffer);
- 253   1      
- 254   1        *ss = buffer[1];// & 0x3F;
- 255   1        *mm = buffer[2];
- 256   1        *hh = buffer[3];
- 257   1      }
- 258          
- 259          void Init_LCD()
- 260          {
- 261   1        int index1;
- 262   1      
- 263   1        //Funktion definieren: 2  zeilig, 5x7 Dots
- 264   1        cmd = 0x38;
- 265   1        for(index1=0;index1<7;index1++);//ca. 50ys warten (mind. 39)
- 266   1        //Display ON,Cursor OFF, Blink OFF
- 267   1        cmd = 0x0C;
- 268   1        for(index1=0;index1<7;index1++);//ca. 50ys warten
- 269   1        
- 270   1        Clear_LCD();
- 271   1        
- 272   1        //Entry Mode: autom Increment ohne Shift
- 273   1        cmd = 0x06;
- 274   1        for(index1=0;index1<7;index1++);//ca. 50ys warten
- 275   1      }
- 276          
- 277          void Clear_LCD()
- 278          {
- 279   1        int index1;
- 280   1        cmd = 0x01;
- 281   1        for(index1=0;index1<370;index1++);//ca. 2ms warten (mind. 1.57)
- 282   1      }
- 283          
- 284          
- 285          void write_char(char value)
- 286          {
- 287   1        int index1;
- 288   1        if(value == 0)
- 289   1        {
- 290   2          return;
- 291   2        }
- 292   1        if(value != '\n')
- 293   1        {
- 294   2          chr = value;
- 295   2        }
- 296   1        else
- 297   1        {
- 298   2          cmd = 0xC0; //->  Adresse auf die zweite Zeile setzen: 1 ( 1 0 0   0 0 0 0) 
- 299   2                //-> DRAM Adresse 0x40!
-C51 COMPILER V9.60.0.0   MAIN                                                              03/09/2022 21:10:50 PAGE 6   
+ 239   1        i2c_s1 = 0x0c1; // Enable interface and select S0
+ 240   1      }
+ 241          
+ 242          void i2c_xmit(unsigned char slave_addr, unsigned char length,unsigned char * buffer)
+ 243          {
+ 244   1        unsigned char i;
+ 245   1        //Waiting for Bus free
+ 246   1        while ((i2c_s1 & 1) ==0) {};
+ 247   1        i2c_s1 = 0x0c5;         // START condition
+ 248   1      
+ 249   1        i2c_reg = slave_addr;   // Set slave address
+ 250   1      
+ 251   1        for (i=0; i<length; i++)
+ 252   1        {
+ 253   2          //wait for Client
+ 254   2          while ((i2c_s1 & 0x80) !=0);        // poll for ready
+ 255   2          if ((i2c_s1 & 0x08) !=0) 
+ 256   2          break;                // if ack, leave loop
+ 257   2          //send Byte
+ 258   2          i2c_reg = buffer[i];                // send data
+ 259   2        }
+ 260   1        while ((i2c_s1 & 0x80) !=0);          // poll for ready
+ 261   1       i2c_s1 = 0x0c3; // sTOP
+ 262   1      }
+ 263          
+ 264          unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr,unsigned char length, unsigned cha
+             -r * buffer)
+ 265          {
+ 266   1        unsigned char i;
+ 267   1        unsigned char error = 0;
+ 268   1        while ((i2c_s1 & 1) ==0) {}; // wait for free bus
+ 269   1      
+ 270   1        i2c_s1 = 0x0c5;  //START Condition
+ 271   1        i2c_reg = slave_addr;
+ 272   1        //wait for Slave
+ 273   1          while ((i2c_s1 & 0x80) !=0);
+ 274   1      
+ 275   1        if ((i2c_s1 & 0x08) !=0) 
+ 276   1        { // no slave ACK
+ 277   2            i2c_s1 = 0x0c3; // sTOP
+ 278   2            return 1;
+ 279   2        }
+ 280   1        else
+ 281   1        {}
+ 282   1          //Registeradresse
+ 283   1          i2c_reg = word_addr;
+ 284   1      
+ 285   1        //Wait for Slave
+ 286   1          while ((i2c_s1 & 0x80) !=0);
+ 287   1      
+ 288   1        if ((i2c_s1 & 0x08) !=0) 
+ 289   1        { // no slave ACK
+ 290   2            i2c_s1 = 0x0c3; // sTOP
+ 291   2            return 1;
+ 292   2        }
+ 293   1        else
+ 294   1        {}
+ 295   1      
+ 296   1        i2c_s1 = 0x0c5;  // START condition
+ 297   1       
+ 298   1        i2c_reg = slave_addr+1; // Set slave address
+ 299   1        for (i=0; i<length; i++)
+C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 11:40:06 PAGE 6   
 
- 300   2        }
- 301   1        for(index1=0;index1<7;index1++);//ca. 50ys warten
- 302   1      }
- 303          
- 304          void print_str_lcd(char* value)
- 305          {
- 306   1        int laenge = strlen(value);
- 307   1        int index = 0;
- 308   1        int index2 = 0;
- 309   1        int index3 = 0;
- 310   1        Clear_LCD();
- 311   1      
- 312   1        for(index = 0;index < laenge;index++)
- 313   1        {
- 314   2          //Erste Zeile
- 315   2          if(index3 < 16 || (index3 > 16 && index3 < 32))
- 316   2          {
- 317   3              if(value[index] == '\n' && index3 < 16)
- 318   3              {
- 319   4                index3 = 16;
- 320   4              }
- 321   3              else if(value[index] == '\n' && index3 > 16)
- 322   3              {
- 323   4                index3 = 32;
- 324   4              }
- 325   3              write_char(value[index]);
- 326   3      
- 327   3      
- 328   3      
- 329   3              index3++;
- 330   3          }//Zweite Zeile
- 331   2          else if(index3==16)
- 332   2          {
- 333   3              write_char('\n');
- 334   3              write_char(value[index]);     
- 335   3              index3++;
- 336   3          }
- 337   2          else if(index3 >= 32)
- 338   2          {
- 339   3           Clear_LCD();
- 340   3           index3 = -1;
- 341   3          }
- 342   2        }
- 343   1      }
+ 300   1        {
+ 301   2          //wait for Slave
+ 302   2          while ((i2c_s1 & 0x80) !=0);  // poll for ready
+ 303   2      
+ 304   2          if ((i2c_s1 & 0x08) !=0) { // no slave ACK
+ 305   3            error = 1;
+ 306   3            break;
+ 307   3          }
+ 308   2        else
+ 309   2        {}
+ 310   2      
+ 311   2        //Byte lesen
+ 312   2          buffer[i] = i2c_reg;
+ 313   2        }
+ 314   1        if (error == 0)
+ 315   1        {
+ 316   2          i2c_s1 = 0x040; // prepare NACK
+ 317   2          buffer[i] = i2c_reg; // read final byte
+ 318   2          while ((i2c_s1 & 0x80) !=0);
+ 319   2        }
+ 320   1      
+ 321   1        i2c_s1 = 0x0c3; // sTOP
+ 322   1      
+ 323   1        return error;
+ 324   1      }
+ 325          
+ 326          void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss)
+ 327          {
+ 328   1        unsigned char buffer[6];
+ 329   1        
+ 330   1        buffer[0] = 2;
+ 331   1        buffer[1] = ss;
+ 332   1        buffer[2] = mm;
+ 333   1        buffer[3] = hh;
+ 334   1        buffer[4] = dt;
+ 335   1        buffer[5] = mt;
+ 336   1        
+ 337   1        i2c_xmit(RTC_ADDR,6,buffer);
+ 338   1      }
+ 339          
+ 340          void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned cha
+             -r *ss, unsigned char *ms)
+ 341          {
+ 342   1        unsigned char buffer[6] = {0,1,2,3,4,5};
+ 343   1      
+ 344   1        i2c_rcv(RTC_ADDR,1,6,buffer);
+ 345   1      
+ 346   1        *ms = buffer[1];
+ 347   1        *ss = buffer[2];
+ 348   1        *mm = buffer[3];
+ 349   1        *hh = buffer[4];
+ 350   1        *dt = buffer[5];
+ 351   1        *mt = buffer[6];
+ 352   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1014    ----
-   CONSTANT SIZE    =     14    ----
+   CODE SIZE        =   1173    ----
+   CONSTANT SIZE    =      6    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     21      66
+   DATA SIZE        =     47      62
+C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 11:40:06 PAGE 7   
+
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
 
 
-C51 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
