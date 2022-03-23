@@ -1,14 +1,15 @@
 /*****************************************************************************
 h e i n r i c h -h e r t z -b e r u f s k o l l e g  d e r  s t a d t  b o n n
-Autor:			Fabian Bonk
+Autor:			Friedjof Noweck
 Klasse:			IH119
-Datum:			02.03.2022
+Datum:			2022-03-16
 Datei:			
 Einsatz:		
-Beschreibung:	Zeit und Datum auf LCD Display Anzeigen
+Beschreibung:
 Funktionen:		
 ******************************************************************************
 Aenderungen:
+2022-03-23 Add ms and year to LCD
 
 *****************************************************************************/
 /******************* Text im Quelltext einbinden *********************/
@@ -32,11 +33,11 @@ unsigned char RTC_ADDR = 0x0a0;
 char Text[] = "Mo, 11.11.11,\n11:11:11:00 Uhr";
 
 /************************** Prototypen *******************************/
-void Einstellungen_LCD();
+void init_I2C();
+void init_LCD();
 void Clear_LCD();
-void Ausgabe(char value);	
-void Display(char* value);
-void Einstellungen_I2C();
+void showChar(char value);	
+void showText(char* value);
 void i2c_xmit(unsigned char slave_addr, unsigned char length,unsigned char * buffer);
 unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr,unsigned char length, unsigned char * buffer);
 void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss);
@@ -53,63 +54,79 @@ void main()
 	unsigned char mt = 0x00;
 	unsigned char ms = 0x00;
 	unsigned char yy = 0x00;
+	unsigned char lastYY = 0x00;
+	unsigned char currentYY = 0x00;
+	unsigned char jahreSeitStart = 0x00;
+	
+	unsigned char aktuellesYY;
+	unsigned char YYSeitLetztemSchaltjahr;
 	
 	int index;
 	
 	Clear_LCD();
-	Einstellungen_LCD();
-	Einstellungen_I2C();
+	init_LCD();
+	init_I2C();
 	
-	// 2022-12-31 23:59:55,00
-	rtc_settime( 0x31, 0x12, 0x23, 0x59, 0x55);
+	// 2020-12-31 23:59:55,00
+	aktuellesYY = 22;
+	YYSeitLetztemSchaltjahr = 2;
+	rtc_settime((YYSeitLetztemSchaltjahr << 0x06) | 0x31, 0x12, 0x23, 0x59, 0x55);
 	
 	// 2023-12-31 23:59:55,00
-	rtc_settime( 0xF1, 0x12, 0x23, 0x59, 0x55);
+	aktuellesYY = 23;
+	YYSeitLetztemSchaltjahr = 3;
+	rtc_settime((YYSeitLetztemSchaltjahr << 0x06) | 0x31, 0x12, 0x23, 0x59, 0x55);
+	
+	lastYY = YYSeitLetztemSchaltjahr;
 
 	while(1)
 	{
-		
     rtc_readtime(&dt, &mt, &hh, &mm, &ss, &ms);
 		
-		//Millisekunden
+		// Millisekunden
 		Text[24] = (ms & 0x0F)+ 48;
 		Text[23] = ((ms & 0xF0) >> 0x04) + 48;
 		
-		//Sekunden
+		// Sekunden
 		Text[21] = (ss & 0x0F) + 48;
 		Text[20] = ((ss & 0xF0) >> 0x04) + 48;
 		
-		//Minuten
+		// Minuten
 		Text[18] = (mm & 0x0F) + 48;
 		Text[17] = ((mm & 0xF0) >> 0x04) + 48;
 		
-		//Stunden
+		// Stunden
 		Text[15] = (hh & 0x0F) + 48;
 		Text[14] = ((hh & 0xF0) >> 0x04) + 48;
 		
-		//Tag
+		// Tag
 		Text[5] = (dt & 0x0F) + 48;
 		Text[4] = ((dt & 0x30) >> 0x04) + 48;
+
+    // Wochentag
+		Wochentag((mt & 0xE0) >> 0x05);
 		
-		//Jahr
-		// Dies ist noch zu testen
-		yy = ((dt & 0xD0) >> 0x06) + 20;
+		// Monat
+		Text[8] = (mt & 0x0F) + 48;
+		Text[7] = ((mt & 0x10) >> 0x04) + 48;
+		
+		// Jahr
+		currentYY = ((dt & 0xD0) >> 0x06);
+		
+		if (currentYY ^ lastYY)
+		{
+			lastYY = currentYY;
+			jahreSeitStart++;
+		}
+		
+		yy = jahreSeitStart + aktuellesYY;
 		for (index = 0x00; index < 2; index++)
 		{
 			Text[11 - index] = (yy % 10) + 0x30;
 			yy /= 10;
 		}
 		
-		//Text[10] = ((dt & 0xD0) >> 0x06) + 0x30;
-		
-		//Monat
-		Text[8] = (mt & 0x0F) + 48;
-		Text[7] = ((mt & 0x10) >> 0x04) + 48; 
-
-    //Wochentag
-		Wochentag((mt & 0xE0) >> 0x05);
-		
-		Display(Text);
+		showText(Text);
 	}
 }
 void Wochentag (unsigned char t)
@@ -148,7 +165,7 @@ void Wochentag (unsigned char t)
 			break;
 	}
 }
-void Einstellungen_LCD()
+void init_LCD()
 {
 	int index1;
 
@@ -173,7 +190,7 @@ void Clear_LCD()
 		cmd = 0x01;
 	 for(index1=0;index1<470;index1++){}//ca. 2ms warten (mind. 1.57)
 }
-void Ausgabe(char value)
+void showChar(char value)
 {
 	int index1;
   if(value == 0)
@@ -191,7 +208,7 @@ void Ausgabe(char value)
 	}
 	for(index1=0;index1<10;index1++);//ca. 50ys warten
 	}
-void Display(char* value)
+void showText(char* value)
 {
 	int laenge = strlen(value); //Textlänge wird bestimmt
 	int index = 0;
@@ -212,14 +229,14 @@ void Display(char* value)
 		{
 		index3 = 32;
 	}
-	Ausgabe(value[index]);
+	showChar(value[index]);
 
 	index3++;
 	}//Zweite Zeile
 	else if(index3==16)
 	{
-	Ausgabe('\n');
-	Ausgabe(value[index]);
+	showChar('\n');
+	showChar(value[index]);
 	index3++;
 	}
 	else if(index3 >= 32)
@@ -230,7 +247,7 @@ void Display(char* value)
 	}
 	for(index=0;index<370;index++){}
 }
-void Einstellungen_I2C()
+void init_I2C()
 {
   i2c_s1 = 0x80;  // Select internal register S0
   i2c_reg = 0x55; // S0 = 0x55 (set effective own address to AAh)
@@ -339,7 +356,7 @@ void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned 
 
 void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned char *ss, unsigned char *ms)
 {
-  unsigned char buffer[6] = {0,1,2,3,4,5};
+  unsigned char buffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
 
   i2c_rcv(RTC_ADDR,1,6,buffer);
 
