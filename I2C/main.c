@@ -17,7 +17,6 @@ Aenderungen:
 #include "I2C_api.h"
 #include "lcd_api.h"
 #include "RTC_api.h"
-#include <string.h>
 /*************************** Konstanten ******************************/
 volatile unsigned char xdata i2c_reg _at_ 0xffa0;
 volatile unsigned char xdata i2c_s1 _at_ 0xffa1;
@@ -30,7 +29,7 @@ volatile char xdata chr _at_ 0xFF82;
 /*********************** globale Variablen ***************************/
 unsigned char rtc_buf[16];
 unsigned char RTC_ADDR = 0x0a0;
-char Text[] = "Mo, 11.11.11,\n11:11:11:00 Uhr";
+char Text[] = "XX, XX.XX.XXXX\nXX:XX:XX.XX";
 
 /************************** Prototypen *******************************/
 void init_I2C();
@@ -43,7 +42,19 @@ unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr,unsigned
 void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss);
 void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned char *ss, unsigned char *ms);
 void Wochentag (unsigned char t);
+int stringLength(char* given_string);
 /************************ Hauptprogramm ******************************/
+
+/* 
+ * 000X XXXX => 0x00 = Mo
+ * 001X XXXX => 0x20 = Di
+ * 010X XXXX => 0x40 = Mi
+ * 011X XXXX => 0x60 = Do
+ * 100X XXXX => 0x80 = Fr
+ * 101X XXXX => 0xA0 = Sa
+ * 110X XXXX => 0xC0 = So
+ * 111X XXXX => 0x00 = XX
+ */
 
 void main()
 {
@@ -53,65 +64,96 @@ void main()
 	unsigned char dt = 0x00;
 	unsigned char mt = 0x00;
 	unsigned char ms = 0x00;
-	unsigned char yy = 0x00;
 	unsigned char lastYY = 0x00;
 	unsigned char currentYY = 0x00;
 	unsigned char jahreSeitStart = 0x00;
 	
-	unsigned char aktuellesYY;
-	unsigned char YYSeitLetztemSchaltjahr;
+	int yy;
+	int aktuellesYYYY;
 	
-	int index;
+	unsigned char index;
 	
 	Clear_LCD();
 	init_LCD();
 	init_I2C();
 	
-	// 2020-12-31 23:59:55,00
-	aktuellesYY = 22;
-	YYSeitLetztemSchaltjahr = 2;
-	rtc_settime((YYSeitLetztemSchaltjahr << 0x06) | 0x31, 0x12, 0x23, 0x59, 0x55);
+	// [Schaltjahr - 28. bis 29. Februar]
+	// Fr 2020-02-28 23:59:55,00
+	aktuellesYYYY = 2020;
+	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x28, 0x82, 0x23, 0x59, 0x55);
 	
-	// 2023-12-31 23:59:55,00
-	aktuellesYY = 23;
-	YYSeitLetztemSchaltjahr = 3;
-	rtc_settime((YYSeitLetztemSchaltjahr << 0x06) | 0x31, 0x12, 0x23, 0x59, 0x55);
+//	// [Schaltjahr - 29. Februar bis 01. März]
+//	// Sa 2020-02-29 23:59:55,00
+//	aktuellesYYYY = 2020;
+//	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x29, 0xA2, 0x23, 0x59, 0x55);
+
+//  // [Kein Schaltjahr - 28. Februar bis 01. März]
+//	// Mo 2022-02-28 23:59:55,00
+//	aktuellesYYYY = 2022;
+//	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x28, 0x02, 0x23, 0x59, 0x55);
+
+//  // [Heute]
+//	// Fr 2022-04-01 11:59:55,00
+//	aktuellesYYYY = 2022;
+//	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x01, 0x84, 0x11, 0x59, 0x55);
+
+//	// [Jahreswechsel 2022 auf 2023]
+//	// Sa 2022-12-31 23:59:55,00
+//	aktuellesYYYY = 2022;
+//	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0xB2, 0x23, 0x59, 0x55);
+
+//	// [Jahreswechsel 2023 auf 2024]
+//	// So 2023-12-31 23:59:55,00
+//	aktuellesYYYY = 2023;
+//	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0xD2, 0x23, 0x59, 0x55);
 	
-	lastYY = YYSeitLetztemSchaltjahr;
+//	// [Jahreswechsel 2099 auf 2100]
+//	// Do 2023-12-31 23:59:55,00
+//	aktuellesYYYY = 2099;
+//	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0x72, 0x23, 0x59, 0x55);
+	
+//	// [Jahreswechsel 9999 auf 0000]
+//	// Mi 2023-12-31 23:59:55,00
+//	aktuellesYYYY = 9999;
+//	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0x52, 0x23, 0x59, 0x55);
+	
+	
+	// Aktuelles Jahr der Uhr
+	lastYY = (aktuellesYYYY % 0x04);
 
 	while(1)
 	{
     rtc_readtime(&dt, &mt, &hh, &mm, &ss, &ms);
 		
 		// Millisekunden
-		Text[24] = (ms & 0x0F)+ 48;
-		Text[23] = ((ms & 0xF0) >> 0x04) + 48;
+		Text[25] = (ms & 0x0F)+ 48;
+		Text[24] = (ms >> 0x04) + 48;
 		
 		// Sekunden
-		Text[21] = (ss & 0x0F) + 48;
-		Text[20] = ((ss & 0xF0) >> 0x04) + 48;
+		Text[22] = (ss & 0x0F) + 48;
+		Text[21] = (ss >> 0x04) + 48;
 		
 		// Minuten
-		Text[18] = (mm & 0x0F) + 48;
-		Text[17] = ((mm & 0xF0) >> 0x04) + 48;
+		Text[19] = (mm & 0x0F) + 48;
+		Text[18] = (mm >> 0x04) + 48;
 		
 		// Stunden
-		Text[15] = (hh & 0x0F) + 48;
-		Text[14] = ((hh & 0xF0) >> 0x04) + 48;
+		Text[16] = (hh & 0x0F) + 48;
+		Text[15] = (hh >> 0x04) + 48;
 		
-		// Tag
+		// Tage
 		Text[5] = (dt & 0x0F) + 48;
 		Text[4] = ((dt & 0x30) >> 0x04) + 48;
 
-    // Wochentag
-		Wochentag((mt & 0xE0) >> 0x05);
+    // Wochentage
+		Wochentag(mt >> 0x05);
 		
-		// Monat
+		// Monate
 		Text[8] = (mt & 0x0F) + 48;
 		Text[7] = ((mt & 0x10) >> 0x04) + 48;
 		
-		// Jahr
-		currentYY = ((dt & 0xD0) >> 0x06);
+		// Jahre
+		currentYY = (dt >> 0x06);
 		
 		if (currentYY ^ lastYY)
 		{
@@ -119,15 +161,42 @@ void main()
 			jahreSeitStart++;
 		}
 		
-		yy = jahreSeitStart + aktuellesYY;
-		for (index = 0x00; index < 2; index++)
+		yy = jahreSeitStart + aktuellesYYYY;
+		for (index = 0x00; index < 4; index++)
 		{
-			Text[11 - index] = (yy % 10) + 0x30;
+			Text[13 - index] = (yy % 10) + 0x30;
 			yy /= 10;
 		}
 		
 		showText(Text);
 	}
+}
+void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss)
+{
+  unsigned char buffer[6];
+	
+  buffer[0] = 2;
+  buffer[1] = ss;
+  buffer[2] = mm;
+  buffer[3] = hh;
+  buffer[4] = dt;
+  buffer[5] = mt;
+	
+  i2c_xmit(RTC_ADDR,6,buffer);
+}
+
+void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned char *ss, unsigned char *ms)
+{
+  unsigned char buffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+
+  i2c_rcv(RTC_ADDR,1,8,buffer);
+
+  *ms = buffer[1];
+  *ss = buffer[2];
+  *mm = buffer[3];
+  *hh = buffer[4];
+	*dt = buffer[5];
+	*mt = buffer[6];
 }
 void Wochentag (unsigned char t)
 {
@@ -210,7 +279,7 @@ void showChar(char value)
 	}
 void showText(char* value)
 {
-	int laenge = strlen(value); //Textlänge wird bestimmt
+	int laenge = stringLength(value); //Textlänge wird bestimmt
 	int index = 0;
 	int index2 = 0;
 	int index3 = 0;
@@ -339,31 +408,17 @@ unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr,unsigned
 
   return error;
 }
-
-void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss)
+// Source => https://www.geeksforgeeks.org/length-string-using-pointers/
+int stringLength(char* given_string)
 {
-  unsigned char buffer[6];
-	
-  buffer[0] = 2;
-  buffer[1] = ss;
-  buffer[2] = mm;
-  buffer[3] = hh;
-  buffer[4] = dt;
-  buffer[5] = mt;
-	
-  i2c_xmit(RTC_ADDR,6,buffer);
-}
+    // variable to store the
+    // length of the string
+    int length = 0;
 
-void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned char *ss, unsigned char *ms)
-{
-  unsigned char buffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
-
-  i2c_rcv(RTC_ADDR,1,6,buffer);
-
-  *ms = buffer[1];
-  *ss = buffer[2];
-  *mm = buffer[3];
-  *hh = buffer[4];
-	*dt = buffer[5];
-	*mt = buffer[6];
+    while (*given_string != '\0') {
+        length++;
+        given_string++;
+    }
+  
+    return length;
 }

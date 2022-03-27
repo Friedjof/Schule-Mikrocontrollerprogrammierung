@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 12:24:26 PAGE 1   
+C51 COMPILER V9.60.0.0   MAIN                                                              03/27/2022 15:16:11 PAGE 1   
 
 
 C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
@@ -26,381 +26,441 @@ line level    source
   17          #include "I2C_api.h"
   18          #include "lcd_api.h"
   19          #include "RTC_api.h"
-  20          #include <string.h>
-  21          /*************************** Konstanten ******************************/
-  22          volatile unsigned char xdata i2c_reg _at_ 0xffa0;
-  23          volatile unsigned char xdata i2c_s1 _at_ 0xffa1;
-  24          
-  25          unsigned char xdata xmem[0x0feff] _at_ 0;
-  26          
-  27          volatile char xdata cmd _at_ 0xFF80;
-  28          volatile char xdata chr _at_ 0xFF82;
-  29          
-  30          /*********************** globale Variablen ***************************/
-  31          unsigned char rtc_buf[16];
-  32          unsigned char RTC_ADDR = 0x0a0;
-  33          char Text[] = "Mo, 11.11.11,\n11:11:11:00 Uhr";
-  34          
-  35          /************************** Prototypen *******************************/
-  36          void init_I2C();
-  37          void init_LCD();
-  38          void Clear_LCD();
-  39          void showChar(char value);  
-  40          void showText(char* value);
-  41          void i2c_xmit(unsigned char slave_addr, unsigned char length,unsigned char * buffer);
-  42          unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr,unsigned char length, unsigned cha
+  20          /*************************** Konstanten ******************************/
+  21          volatile unsigned char xdata i2c_reg _at_ 0xffa0;
+  22          volatile unsigned char xdata i2c_s1 _at_ 0xffa1;
+  23          
+  24          unsigned char xdata xmem[0x0feff] _at_ 0;
+  25          
+  26          volatile char xdata cmd _at_ 0xFF80;
+  27          volatile char xdata chr _at_ 0xFF82;
+  28          
+  29          /*********************** globale Variablen ***************************/
+  30          unsigned char rtc_buf[16];
+  31          unsigned char RTC_ADDR = 0x0a0;
+  32          char Text[] = "XX, XX.XX.XXXX\nXX:XX:XX.XX";
+  33          
+  34          /************************** Prototypen *******************************/
+  35          void init_I2C();
+  36          void init_LCD();
+  37          void Clear_LCD();
+  38          void showChar(char value);  
+  39          void showText(char* value);
+  40          void i2c_xmit(unsigned char slave_addr, unsigned char length,unsigned char * buffer);
+  41          unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr,unsigned char length, unsigned cha
              -r * buffer);
-  43          void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss)
+  42          void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss)
              -;
-  44          void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned cha
+  43          void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned cha
              -r *ss, unsigned char *ms);
-  45          void Wochentag (unsigned char t);
+  44          void Wochentag (unsigned char t);
+  45          int stringLength(char* given_string);
   46          /************************ Hauptprogramm ******************************/
   47          
-  48          void main()
-  49          {
-  50   1        unsigned char ss = 0x00;
-  51   1        unsigned char mm = 0x00;
-  52   1        unsigned char hh = 0x00;
-C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 12:24:26 PAGE 2   
+  48          /* 
+  49           * 000X XXXX => 0x00 = Mo
+  50           * 001X XXXX => 0x20 = Di
+  51           * 010X XXXX => 0x40 = Mi
+  52           * 011X XXXX => 0x60 = Do
+C51 COMPILER V9.60.0.0   MAIN                                                              03/27/2022 15:16:11 PAGE 2   
 
-  53   1        unsigned char dt = 0x00;
-  54   1        unsigned char mt = 0x00;
-  55   1        unsigned char ms = 0x00;
-  56   1        unsigned char yy = 0x00;
-  57   1        unsigned char lastYY = 0x00;
-  58   1        unsigned char currentYY = 0x00;
-  59   1        unsigned char jahreSeitStart = 0x00;
-  60   1        
-  61   1        unsigned char aktuellesYY;
-  62   1        unsigned char YYSeitLetztemSchaltjahr;
-  63   1        
-  64   1        int index;
-  65   1        
-  66   1        Clear_LCD();
-  67   1        init_LCD();
-  68   1        init_I2C();
-  69   1        
-  70   1        // 2020-12-31 23:59:55,00
-  71   1        aktuellesYY = 22;
-  72   1        YYSeitLetztemSchaltjahr = 2;
-  73   1        rtc_settime((YYSeitLetztemSchaltjahr << 0x06) | 0x31, 0x12, 0x23, 0x59, 0x55);
-  74   1        
-  75   1        // 2023-12-31 23:59:55,00
-  76   1        aktuellesYY = 23;
-  77   1        YYSeitLetztemSchaltjahr = 3;
-  78   1        rtc_settime((YYSeitLetztemSchaltjahr << 0x06) | 0x31, 0x12, 0x23, 0x59, 0x55);
+  53           * 100X XXXX => 0x80 = Fr
+  54           * 101X XXXX => 0xA0 = Sa
+  55           * 110X XXXX => 0xC0 = So
+  56           * 111X XXXX => 0x00 = XX
+  57           */
+  58          
+  59          void main()
+  60          {
+  61   1        unsigned char ss = 0x00;
+  62   1        unsigned char mm = 0x00;
+  63   1        unsigned char hh = 0x00;
+  64   1        unsigned char dt = 0x00;
+  65   1        unsigned char mt = 0x00;
+  66   1        unsigned char ms = 0x00;
+  67   1        unsigned char lastYY = 0x00;
+  68   1        unsigned char currentYY = 0x00;
+  69   1        unsigned char jahreSeitStart = 0x00;
+  70   1        
+  71   1        int yy;
+  72   1        int aktuellesYYYY;
+  73   1        
+  74   1        unsigned char index;
+  75   1        
+  76   1        Clear_LCD();
+  77   1        init_LCD();
+  78   1        init_I2C();
   79   1        
-  80   1        lastYY = YYSeitLetztemSchaltjahr;
-  81   1      
-  82   1        while(1)
-  83   1        {
-  84   2          rtc_readtime(&dt, &mt, &hh, &mm, &ss, &ms);
-  85   2          
-  86   2          // Millisekunden
-  87   2          Text[24] = (ms & 0x0F)+ 48;
-  88   2          Text[23] = ((ms & 0xF0) >> 0x04) + 48;
-  89   2          
-  90   2          // Sekunden
-  91   2          Text[21] = (ss & 0x0F) + 48;
-  92   2          Text[20] = ((ss & 0xF0) >> 0x04) + 48;
-  93   2          
-  94   2          // Minuten
-  95   2          Text[18] = (mm & 0x0F) + 48;
-  96   2          Text[17] = ((mm & 0xF0) >> 0x04) + 48;
-  97   2          
-  98   2          // Stunden
-  99   2          Text[15] = (hh & 0x0F) + 48;
- 100   2          Text[14] = ((hh & 0xF0) >> 0x04) + 48;
- 101   2          
- 102   2          // Tag
- 103   2          Text[5] = (dt & 0x0F) + 48;
- 104   2          Text[4] = ((dt & 0x30) >> 0x04) + 48;
- 105   2      
- 106   2          // Wochentag
- 107   2          Wochentag((mt & 0xE0) >> 0x05);
- 108   2          
- 109   2          // Monat
- 110   2          Text[8] = (mt & 0x0F) + 48;
- 111   2          Text[7] = ((mt & 0x10) >> 0x04) + 48;
- 112   2          
- 113   2          // Jahr
- 114   2          currentYY = ((dt & 0xD0) >> 0x06);
-C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 12:24:26 PAGE 3   
+  80   1        // [Schaltjahr - 28. bis 29. Februar]
+  81   1        // Fr 2020-02-28 23:59:55,00
+  82   1        aktuellesYYYY = 2020;
+  83   1        rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x28, 0x82, 0x23, 0x59, 0x55);
+  84   1        
+  85   1      //  // [Schaltjahr - 29. Februar bis 01. März]
+  86   1      //  // Sa 2020-02-29 23:59:55,00
+  87   1      //  aktuellesYYYY = 2020;
+  88   1      //  rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x29, 0xA2, 0x23, 0x59, 0x55);
+  89   1      
+  90   1      //  // [Kein Schaltjahr - 28. Februar bis 01. März]
+  91   1      //  // Mo 2022-02-28 23:59:55,00
+  92   1      //  aktuellesYYYY = 2022;
+  93   1      //  rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x28, 0x02, 0x23, 0x59, 0x55);
+  94   1      
+  95   1      //  // [Heute]
+  96   1      //  // Fr 2022-04-01 11:59:55,00
+  97   1      //  aktuellesYYYY = 2022;
+  98   1      //  rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x01, 0x84, 0x11, 0x59, 0x55);
+  99   1      
+ 100   1      //  // [Jahreswechsel 2022 auf 2023]
+ 101   1      //  // Sa 2022-12-31 23:59:55,00
+ 102   1      //  aktuellesYYYY = 2022;
+ 103   1      //  rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0xB2, 0x23, 0x59, 0x55);
+ 104   1      
+ 105   1      //  // [Jahreswechsel 2023 auf 2024]
+ 106   1      //  // So 2023-12-31 23:59:55,00
+ 107   1      //  aktuellesYYYY = 2023;
+ 108   1      //  rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0xD2, 0x23, 0x59, 0x55);
+ 109   1        
+ 110   1      //  // [Jahreswechsel 2099 auf 2100]
+ 111   1      //  // Do 2023-12-31 23:59:55,00
+ 112   1      //  aktuellesYYYY = 2099;
+ 113   1      //  rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0x72, 0x23, 0x59, 0x55);
+ 114   1        
+C51 COMPILER V9.60.0.0   MAIN                                                              03/27/2022 15:16:11 PAGE 3   
 
- 115   2          
- 116   2          if (currentYY ^ lastYY)
- 117   2          {
- 118   3            lastYY = currentYY;
- 119   3            jahreSeitStart++;
- 120   3          }
- 121   2          
- 122   2          yy = jahreSeitStart + aktuellesYY;
- 123   2          for (index = 0x00; index < 2; index++)
- 124   2          {
- 125   3            Text[11 - index] = (yy % 10) + 0x30;
- 126   3            yy /= 10;
- 127   3          }
- 128   2          
- 129   2          showText(Text);
- 130   2        }
- 131   1      }
- 132          void Wochentag (unsigned char t)
- 133          {
- 134   1        switch(t)
- 135   1        {
- 136   2          case 0x00: 
- 137   2                  Text[0] = 'M';
- 138   2                  Text[1] = 'o';
- 139   2            break; 
- 140   2          case 0x01: 
- 141   2                  Text[0] = 'D';
- 142   2                  Text[1] = 'i';
- 143   2            break;
- 144   2          case 0x02: 
- 145   2                 Text[0] = 'M';
- 146   2                 Text[1] = 'i';
- 147   2            break;
- 148   2          case 0x03: 
- 149   2                 Text[0] = 'D';
- 150   2                 Text[1] = 'o';
- 151   2            break;
- 152   2          case 0x04: 
- 153   2                 Text[0] = 'F';
- 154   2                 Text[1] = 'r';
- 155   2            break;
- 156   2          case 0x05: 
- 157   2                 Text[0] = 'S';
- 158   2                 Text[1] = 'a';
- 159   2            break;
- 160   2          case 0x06:
- 161   2                Text[0] = 'S';
- 162   2                Text[1] = 'o';
- 163   2            break;
- 164   2          default:
- 165   2            break;
- 166   2        }
- 167   1      }
- 168          void init_LCD()
- 169          {
- 170   1        int index1;
- 171   1      
- 172   1        //Funktion definieren: 2  zeilig, 5x7 Dots, 8 Bit
- 173   1        cmd = 0x38; 
- 174   1        for(index1=0;index1<7;index1++);//ca. 50ys warten (mind. 39)
- 175   1        
- 176   1        //Display An, Cursor Aus, Blinken aus
-C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 12:24:26 PAGE 4   
+ 115   1      //  // [Jahreswechsel 9999 auf 0000]
+ 116   1      //  // Mi 2023-12-31 23:59:55,00
+ 117   1      //  aktuellesYYYY = 9999;
+ 118   1      //  rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0x52, 0x23, 0x59, 0x55);
+ 119   1        
+ 120   1        
+ 121   1        
+ 122   1        
+ 123   1        
+ 124   1        
+ 125   1        lastYY = (aktuellesYYYY % 0x04);
+ 126   1      
+ 127   1        while(1)
+ 128   1        {
+ 129   2          rtc_readtime(&dt, &mt, &hh, &mm, &ss, &ms);
+ 130   2          
+ 131   2          // Millisekunden
+ 132   2          Text[25] = (ms & 0x0F)+ 48;
+ 133   2          Text[24] = (ms >> 0x04) + 48;
+ 134   2          
+ 135   2          // Sekunden
+ 136   2          Text[22] = (ss & 0x0F) + 48;
+ 137   2          Text[21] = (ss >> 0x04) + 48;
+ 138   2          
+ 139   2          // Minuten
+ 140   2          Text[19] = (mm & 0x0F) + 48;
+ 141   2          Text[18] = (mm >> 0x04) + 48;
+ 142   2          
+ 143   2          // Stunden
+ 144   2          Text[16] = (hh & 0x0F) + 48;
+ 145   2          Text[15] = (hh >> 0x04) + 48;
+ 146   2          
+ 147   2          // Tage
+ 148   2          Text[5] = (dt & 0x0F) + 48;
+ 149   2          Text[4] = ((dt & 0x30) >> 0x04) + 48;
+ 150   2      
+ 151   2          // Wochentage
+ 152   2          Wochentag(mt >> 0x05);
+ 153   2          
+ 154   2          // Monate
+ 155   2          Text[8] = (mt & 0x0F) + 48;
+ 156   2          Text[7] = ((mt & 0x10) >> 0x04) + 48;
+ 157   2          
+ 158   2          // Jahre
+ 159   2          currentYY = (dt >> 0x06);
+ 160   2          
+ 161   2          if (currentYY ^ lastYY)
+ 162   2          {
+ 163   3            lastYY = currentYY;
+ 164   3            jahreSeitStart++;
+ 165   3          }
+ 166   2          
+ 167   2          yy = jahreSeitStart + aktuellesYYYY;
+ 168   2          for (index = 0x00; index < 4; index++)
+ 169   2          {
+ 170   3            Text[13 - index] = (yy % 10) + 0x30;
+ 171   3            yy /= 10;
+ 172   3          }
+ 173   2          
+ 174   2          showText(Text);
+ 175   2        }
+ 176   1      }
+C51 COMPILER V9.60.0.0   MAIN                                                              03/27/2022 15:16:11 PAGE 4   
 
- 177   1        cmd = 0x0C;
- 178   1        for(index1=0;index1<7;index1++);//ca. 50ys warten
- 179   1        
- 180   1        Clear_LCD();
- 181   1        
- 182   1        //Entry Mode: autom Increment ohne Shift
- 183   1        cmd = 0x06;
- 184   1        for(index1=0;index1<7;index1++);//ca. 50ys warten
- 185   1      }
- 186          void Clear_LCD()
- 187          {
- 188   1        int index1;
- 189   1          cmd = 0x02;
- 190   1          cmd = 0x01;
- 191   1         for(index1=0;index1<470;index1++){}//ca. 2ms warten (mind. 1.57)
- 192   1      }
- 193          void showChar(char value)
- 194          {
- 195   1        int index1;
- 196   1        if(value == 0)
- 197   1        {
- 198   2          return;
- 199   2        }
- 200   1        if(value != '\n')
- 201   1        {
- 202   2          chr = value;
- 203   2        }
- 204   1        else
- 205   1        {
- 206   2          cmd = 0xC0; //->  Adresse auf die zweite Zeile setzen: 1 ( 1 0 0   0 0 0 0) 
- 207   2                //-> DRAM Adresse 0x40!
- 208   2        }
- 209   1        for(index1=0;index1<10;index1++);//ca. 50ys warten
- 210   1        }
- 211          void showText(char* value)
- 212          {
- 213   1        int laenge = strlen(value); //Textlänge wird bestimmt
- 214   1        int index = 0;
- 215   1        int index2 = 0;
- 216   1        int index3 = 0;
- 217   1        Clear_LCD();
- 218   1      
- 219   1        for(index = 0;index < laenge;index++)
- 220   1        {
- 221   2        //Erste Zeile
- 222   2          if(index3 < 16 || (index3 > 16 && index3 < 32))
- 223   2          {
- 224   3          if(value[index] == '\n' && index3 < 16)
- 225   3          {
- 226   4          index3 = 16;
- 227   4          }
- 228   3          else if(value[index] == '\n' && index3 > 16)
- 229   3          {
- 230   4          index3 = 32;
- 231   4        }
- 232   3        showChar(value[index]);
- 233   3      
- 234   3        index3++;
- 235   3        }//Zweite Zeile
- 236   2        else if(index3==16)
- 237   2        {
- 238   3        showChar('\n');
-C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 12:24:26 PAGE 5   
-
- 239   3        showChar(value[index]);
- 240   3        index3++;
- 241   3        }
- 242   2        else if(index3 >= 32)
- 243   2        {
- 244   3        Clear_LCD();
- 245   3        index3 = -1;
- 246   3        }
- 247   2        }
- 248   1        for(index=0;index<370;index++){}
- 249   1      }
- 250          void init_I2C()
- 251          {
- 252   1        i2c_s1 = 0x80;  // Select internal register S0
- 253   1        i2c_reg = 0x55; // S0 = 0x55 (set effective own address to AAh)
- 254   1        i2c_s1 = 0x0a0; // Select internal register S2
- 255   1        i2c_reg = 0x1c; // System Clock is 12 MHz; SCL = 90 kHz
- 256   1        i2c_s1 = 0x0c1; // Enable interface and select S0
- 257   1      }
- 258          
- 259          void i2c_xmit(unsigned char slave_addr, unsigned char length,unsigned char * buffer)
- 260          {
- 261   1        unsigned char i;
- 262   1        //Waiting for Bus free
- 263   1        while ((i2c_s1 & 1) ==0) {};
- 264   1        i2c_s1 = 0x0c5;         // START condition
- 265   1      
- 266   1        i2c_reg = slave_addr;   // Set slave address
- 267   1      
- 268   1        for (i=0; i<length; i++)
- 269   1        {
- 270   2          //wait for Client
- 271   2          while ((i2c_s1 & 0x80) !=0);        // poll for ready
- 272   2          if ((i2c_s1 & 0x08) !=0) 
- 273   2          break;                // if ack, leave loop
- 274   2          //send Byte
- 275   2          i2c_reg = buffer[i];                // send data
- 276   2        }
- 277   1        while ((i2c_s1 & 0x80) !=0);          // poll for ready
- 278   1       i2c_s1 = 0x0c3; // sTOP
- 279   1      }
- 280          
- 281          unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr,unsigned char length, unsigned cha
-             -r * buffer)
- 282          {
- 283   1        unsigned char i;
- 284   1        unsigned char error = 0;
- 285   1        while ((i2c_s1 & 1) ==0) {}; // wait for free bus
- 286   1      
- 287   1        i2c_s1 = 0x0c5;  //START Condition
- 288   1        i2c_reg = slave_addr;
- 289   1        //wait for Slave
- 290   1          while ((i2c_s1 & 0x80) !=0);
- 291   1      
- 292   1        if ((i2c_s1 & 0x08) !=0) 
- 293   1        { // no slave ACK
- 294   2            i2c_s1 = 0x0c3; // sTOP
- 295   2            return 1;
- 296   2        }
- 297   1        else
- 298   1        {}
- 299   1          //Registeradresse
-C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 12:24:26 PAGE 6   
-
- 300   1          i2c_reg = word_addr;
- 301   1      
- 302   1        //Wait for Slave
- 303   1          while ((i2c_s1 & 0x80) !=0);
- 304   1      
- 305   1        if ((i2c_s1 & 0x08) !=0) 
- 306   1        { // no slave ACK
- 307   2            i2c_s1 = 0x0c3; // sTOP
- 308   2            return 1;
- 309   2        }
- 310   1        else
- 311   1        {}
- 312   1      
- 313   1        i2c_s1 = 0x0c5;  // START condition
- 314   1       
- 315   1        i2c_reg = slave_addr+1; // Set slave address
- 316   1        for (i=0; i<length; i++)
- 317   1        {
- 318   2          //wait for Slave
- 319   2          while ((i2c_s1 & 0x80) !=0);  // poll for ready
- 320   2      
- 321   2          if ((i2c_s1 & 0x08) !=0) { // no slave ACK
- 322   3            error = 1;
- 323   3            break;
- 324   3          }
- 325   2        else
- 326   2        {}
- 327   2      
- 328   2        //Byte lesen
- 329   2          buffer[i] = i2c_reg;
- 330   2        }
- 331   1        if (error == 0)
- 332   1        {
- 333   2          i2c_s1 = 0x040; // prepare NACK
- 334   2          buffer[i] = i2c_reg; // read final byte
- 335   2          while ((i2c_s1 & 0x80) !=0);
- 336   2        }
- 337   1      
- 338   1        i2c_s1 = 0x0c3; // sTOP
- 339   1      
- 340   1        return error;
- 341   1      }
- 342          
- 343          void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss)
- 344          {
- 345   1        unsigned char buffer[6];
- 346   1        
- 347   1        buffer[0] = 2;
- 348   1        buffer[1] = ss;
- 349   1        buffer[2] = mm;
- 350   1        buffer[3] = hh;
- 351   1        buffer[4] = dt;
- 352   1        buffer[5] = mt;
- 353   1        
- 354   1        i2c_xmit(RTC_ADDR,6,buffer);
- 355   1      }
- 356          
- 357          void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned cha
+ 177          void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss)
+ 178          {
+ 179   1        unsigned char buffer[6];
+ 180   1        
+ 181   1        buffer[0] = 2;
+ 182   1        buffer[1] = ss;
+ 183   1        buffer[2] = mm;
+ 184   1        buffer[3] = hh;
+ 185   1        buffer[4] = dt;
+ 186   1        buffer[5] = mt;
+ 187   1        
+ 188   1        i2c_xmit(RTC_ADDR,6,buffer);
+ 189   1      }
+ 190          
+ 191          void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned cha
              -r *ss, unsigned char *ms)
- 358          {
- 359   1        unsigned char buffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
- 360   1      
-C51 COMPILER V9.60.0.0   MAIN                                                              03/23/2022 12:24:26 PAGE 7   
+ 192          {
+ 193   1        unsigned char buffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+ 194   1      
+ 195   1        i2c_rcv(RTC_ADDR,1,8,buffer);
+ 196   1      
+ 197   1        *ms = buffer[1];
+ 198   1        *ss = buffer[2];
+ 199   1        *mm = buffer[3];
+ 200   1        *hh = buffer[4];
+ 201   1        *dt = buffer[5];
+ 202   1        *mt = buffer[6];
+ 203   1      }
+ 204          void Wochentag (unsigned char t)
+ 205          {
+ 206   1        switch(t)
+ 207   1        {
+ 208   2          case 0x00: 
+ 209   2                  Text[0] = 'M';
+ 210   2                  Text[1] = 'o';
+ 211   2            break; 
+ 212   2          case 0x01: 
+ 213   2                  Text[0] = 'D';
+ 214   2                  Text[1] = 'i';
+ 215   2            break;
+ 216   2          case 0x02: 
+ 217   2                 Text[0] = 'M';
+ 218   2                 Text[1] = 'i';
+ 219   2            break;
+ 220   2          case 0x03: 
+ 221   2                 Text[0] = 'D';
+ 222   2                 Text[1] = 'o';
+ 223   2            break;
+ 224   2          case 0x04: 
+ 225   2                 Text[0] = 'F';
+ 226   2                 Text[1] = 'r';
+ 227   2            break;
+ 228   2          case 0x05: 
+ 229   2                 Text[0] = 'S';
+ 230   2                 Text[1] = 'a';
+ 231   2            break;
+ 232   2          case 0x06:
+ 233   2                Text[0] = 'S';
+ 234   2                Text[1] = 'o';
+ 235   2            break;
+ 236   2          default:
+ 237   2            break;
+C51 COMPILER V9.60.0.0   MAIN                                                              03/27/2022 15:16:11 PAGE 5   
 
- 361   1        i2c_rcv(RTC_ADDR,1,6,buffer);
- 362   1      
- 363   1        *ms = buffer[1];
- 364   1        *ss = buffer[2];
- 365   1        *mm = buffer[3];
- 366   1        *hh = buffer[4];
- 367   1        *dt = buffer[5];
- 368   1        *mt = buffer[6];
- 369   1      }
+ 238   2        }
+ 239   1      }
+ 240          void init_LCD()
+ 241          {
+ 242   1        int index1;
+ 243   1      
+ 244   1        //Funktion definieren: 2  zeilig, 5x7 Dots, 8 Bit
+ 245   1        cmd = 0x38; 
+ 246   1        for(index1=0;index1<7;index1++);//ca. 50ys warten (mind. 39)
+ 247   1        
+ 248   1        //Display An, Cursor Aus, Blinken aus
+ 249   1        cmd = 0x0C;
+ 250   1        for(index1=0;index1<7;index1++);//ca. 50ys warten
+ 251   1        
+ 252   1        Clear_LCD();
+ 253   1        
+ 254   1        //Entry Mode: autom Increment ohne Shift
+ 255   1        cmd = 0x06;
+ 256   1        for(index1=0;index1<7;index1++);//ca. 50ys warten
+ 257   1      }
+ 258          void Clear_LCD()
+ 259          {
+ 260   1        int index1;
+ 261   1          cmd = 0x02;
+ 262   1          cmd = 0x01;
+ 263   1         for(index1=0;index1<470;index1++){}//ca. 2ms warten (mind. 1.57)
+ 264   1      }
+ 265          void showChar(char value)
+ 266          {
+ 267   1        int index1;
+ 268   1        if(value == 0)
+ 269   1        {
+ 270   2          return;
+ 271   2        }
+ 272   1        if(value != '\n')
+ 273   1        {
+ 274   2          chr = value;
+ 275   2        }
+ 276   1        else
+ 277   1        {
+ 278   2          cmd = 0xC0; //->  Adresse auf die zweite Zeile setzen: 1 ( 1 0 0   0 0 0 0) 
+ 279   2                //-> DRAM Adresse 0x40!
+ 280   2        }
+ 281   1        for(index1=0;index1<10;index1++);//ca. 50ys warten
+ 282   1        }
+ 283          void showText(char* value)
+ 284          {
+ 285   1        int laenge = stringLength(value); //Textlänge wird bestimmt
+ 286   1        int index = 0;
+ 287   1        int index2 = 0;
+ 288   1        int index3 = 0;
+ 289   1        Clear_LCD();
+ 290   1      
+ 291   1        for(index = 0;index < laenge;index++)
+ 292   1        {
+ 293   2        //Erste Zeile
+ 294   2          if(index3 < 16 || (index3 > 16 && index3 < 32))
+ 295   2          {
+ 296   3          if(value[index] == '\n' && index3 < 16)
+ 297   3          {
+ 298   4          index3 = 16;
+ 299   4          }
+C51 COMPILER V9.60.0.0   MAIN                                                              03/27/2022 15:16:11 PAGE 6   
+
+ 300   3          else if(value[index] == '\n' && index3 > 16)
+ 301   3          {
+ 302   4          index3 = 32;
+ 303   4        }
+ 304   3        showChar(value[index]);
+ 305   3      
+ 306   3        index3++;
+ 307   3        }//Zweite Zeile
+ 308   2        else if(index3==16)
+ 309   2        {
+ 310   3        showChar('\n');
+ 311   3        showChar(value[index]);
+ 312   3        index3++;
+ 313   3        }
+ 314   2        else if(index3 >= 32)
+ 315   2        {
+ 316   3        Clear_LCD();
+ 317   3        index3 = -1;
+ 318   3        }
+ 319   2        }
+ 320   1        for(index=0;index<370;index++){}
+ 321   1      }
+ 322          void init_I2C()
+ 323          {
+ 324   1        i2c_s1 = 0x80;  // Select internal register S0
+ 325   1        i2c_reg = 0x55; // S0 = 0x55 (set effective own address to AAh)
+ 326   1        i2c_s1 = 0x0a0; // Select internal register S2
+ 327   1        i2c_reg = 0x1c; // System Clock is 12 MHz; SCL = 90 kHz
+ 328   1        i2c_s1 = 0x0c1; // Enable interface and select S0
+ 329   1      }
+ 330          
+ 331          void i2c_xmit(unsigned char slave_addr, unsigned char length,unsigned char * buffer)
+ 332          {
+ 333   1        unsigned char i;
+ 334   1        //Waiting for Bus free
+ 335   1        while ((i2c_s1 & 1) ==0) {};
+ 336   1        i2c_s1 = 0x0c5;         // START condition
+ 337   1      
+ 338   1        i2c_reg = slave_addr;   // Set slave address
+ 339   1      
+ 340   1        for (i=0; i<length; i++)
+ 341   1        {
+ 342   2          //wait for Client
+ 343   2          while ((i2c_s1 & 0x80) !=0);        // poll for ready
+ 344   2          if ((i2c_s1 & 0x08) !=0) 
+ 345   2          break;                // if ack, leave loop
+ 346   2          //send Byte
+ 347   2          i2c_reg = buffer[i];                // send data
+ 348   2        }
+ 349   1        while ((i2c_s1 & 0x80) !=0);          // poll for ready
+ 350   1       i2c_s1 = 0x0c3; // sTOP
+ 351   1      }
+ 352          
+ 353          unsigned char i2c_rcv(unsigned char slave_addr, unsigned char word_addr,unsigned char length, unsigned cha
+             -r * buffer)
+ 354          {
+ 355   1        unsigned char i;
+ 356   1        unsigned char error = 0;
+ 357   1        while ((i2c_s1 & 1) ==0) {}; // wait for free bus
+ 358   1      
+ 359   1        i2c_s1 = 0x0c5;  //START Condition
+ 360   1        i2c_reg = slave_addr;
+C51 COMPILER V9.60.0.0   MAIN                                                              03/27/2022 15:16:11 PAGE 7   
+
+ 361   1        //wait for Slave
+ 362   1          while ((i2c_s1 & 0x80) !=0);
+ 363   1      
+ 364   1        if ((i2c_s1 & 0x08) !=0) 
+ 365   1        { // no slave ACK
+ 366   2            i2c_s1 = 0x0c3; // sTOP
+ 367   2            return 1;
+ 368   2        }
+ 369   1        else
+ 370   1        {}
+ 371   1          //Registeradresse
+ 372   1          i2c_reg = word_addr;
+ 373   1      
+ 374   1        //Wait for Slave
+ 375   1          while ((i2c_s1 & 0x80) !=0);
+ 376   1      
+ 377   1        if ((i2c_s1 & 0x08) !=0) 
+ 378   1        { // no slave ACK
+ 379   2            i2c_s1 = 0x0c3; // sTOP
+ 380   2            return 1;
+ 381   2        }
+ 382   1        else
+ 383   1        {}
+ 384   1      
+ 385   1        i2c_s1 = 0x0c5;  // START condition
+ 386   1       
+ 387   1        i2c_reg = slave_addr+1; // Set slave address
+ 388   1        for (i=0; i<length; i++)
+ 389   1        {
+ 390   2          //wait for Slave
+ 391   2          while ((i2c_s1 & 0x80) !=0);  // poll for ready
+ 392   2      
+ 393   2          if ((i2c_s1 & 0x08) !=0) { // no slave ACK
+ 394   3            error = 1;
+ 395   3            break;
+ 396   3          }
+ 397   2        else
+ 398   2        {}
+ 399   2      
+ 400   2        //Byte lesen
+ 401   2          buffer[i] = i2c_reg;
+ 402   2        }
+ 403   1        if (error == 0)
+ 404   1        {
+ 405   2          i2c_s1 = 0x040; // prepare NACK
+ 406   2          buffer[i] = i2c_reg; // read final byte
+ 407   2          while ((i2c_s1 & 0x80) !=0);
+ 408   2        }
+ 409   1      
+ 410   1        i2c_s1 = 0x0c3; // sTOP
+ 411   1      
+ 412   1        return error;
+ 413   1      }
+ 414          // Source => https://www.geeksforgeeks.org/length-string-using-pointers/
+ 415          int stringLength(char* given_string)
+ 416          {
+ 417   1          // variable to store the
+ 418   1          // length of the string
+ 419   1          int length = 0;
+ 420   1      
+ 421   1          while (*given_string != '\0') {
+ 422   2              length++;
+C51 COMPILER V9.60.0.0   MAIN                                                              03/27/2022 15:16:11 PAGE 8   
+
+ 423   2              given_string++;
+ 424   2          }
+ 425   1        
+ 426   1          return length;
+ 427   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1203    ----
+   CODE SIZE        =   1245    ----
    CONSTANT SIZE    =      8    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     47      69
+   DATA SIZE        =     44      70
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
