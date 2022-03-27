@@ -2,15 +2,20 @@
 h e i n r i c h -h e r t z -b e r u f s k o l l e g  d e r  s t a d t  b o n n
 Autor:			Friedjof Noweck
 Klasse:			IH119
-Datum:			2022-03-16
-Datei:			
-Einsatz:		
-Beschreibung:
-Funktionen:		
+Datum:			2022-04-01 Fr
+Datei:			main.c
+Einsatz:		Schulungskontroller REG517A
+Beschreibung:		Zeigt Zeit an im Format WT, TT.MM.JJJJ - hh:mm:ss.ms
+Funktionen:		Kann über den I2C Bus die Uhr setzen und abfragen
 ******************************************************************************
 Aenderungen:
-2022-03-23 Add ms and year to LCD
-
+2022-03-04	APIs einbinden
+2022-03-09	mm:hh:ss hinzugefüht
+2022-03-18	Hinzufügen der TT.MM
+2022-03-23	Hinzufügen des Jahres
+2022-03-25	Lösung des Wochentagsproblem
+2022-03-26	Vierstellige Jahreszahlen
+2022-03-27	Hinzufügen von Test Daten und das Durchführen von Tests
 *****************************************************************************/
 /******************* Text im Quelltext einbinden *********************/
 #include "REG517A.h"
@@ -82,12 +87,12 @@ void main()
 	aktuellesYYYY = 2020;
 	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x28, 0x82, 0x23, 0x59, 0x55);
 	
-//	// [Schaltjahr - 29. Februar bis 01. M�rz]
+//	// [Schaltjahr - 29. Februar bis 01. März]
 //	// Sa 2020-02-29 23:59:55,00
 //	aktuellesYYYY = 2020;
 //	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x29, 0xA2, 0x23, 0x59, 0x55);
 
-//  // [Kein Schaltjahr - 28. Februar bis 01. M�rz]
+//  // [Kein Schaltjahr - 28. Februar bis 01. März]
 //	// Mo 2022-02-28 23:59:55,00
 //	aktuellesYYYY = 2022;
 //	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x28, 0x02, 0x23, 0x59, 0x55);
@@ -279,7 +284,7 @@ void showChar(char value)
 	}
 void showText(char* value)
 {
-	int laenge = stringLength(value); //Textl�nge wird bestimmt
+	int laenge = stringLength(value); //Textlänge wird bestimmt
 	int index = 0;
 	int index2 = 0;
 	int index3 = 0;
