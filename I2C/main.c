@@ -122,6 +122,16 @@ void main()
 //	aktuellesYYYY = 9999;
 //	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0x52, 0x23, 0x59, 0x55);
 	
+//	// [Jahreswechsel 999 auf 1000]
+//	// Sa 999-12-31 23:59:55,00
+//	aktuellesYYYY = 999;
+//	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0xB2, 0x23, 0x59, 0x55);
+	
+//	// [Jahreswechsel 1 auf 2]
+//	// Sa 1-12-31 23:59:55,00
+//	aktuellesYYYY = 1;
+//	rtc_settime(((aktuellesYYYY % 0x04) << 0x06) | 0x31, 0xB2, 0x23, 0x59, 0x55);
+	
 	
 	// Aktuelles Jahr der Uhr
 	lastYY = (aktuellesYYYY % 0x04);
