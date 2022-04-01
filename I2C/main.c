@@ -63,9 +63,9 @@ int stringLength(char* given_string);
 
 void main()
 {
-  unsigned char ss = 0x00;
-  unsigned char mm = 0x00;
-  unsigned char hh = 0x00;
+	unsigned char ss = 0x00;
+	unsigned char mm = 0x00;
+	unsigned char hh = 0x00;
 	unsigned char dt = 0x00;
 	unsigned char mt = 0x00;
 	unsigned char ms = 0x00;
@@ -160,7 +160,7 @@ void main()
 		Text[5] = (dt & 0x0F) + 48;
 		Text[4] = ((dt & 0x30) >> 0x04) + 48;
 
-    // Wochentage
+		// Wochentage
 		Wochentag(mt >> 0x05);
 		
 		// Monate
@@ -188,28 +188,28 @@ void main()
 }
 void rtc_settime(unsigned char dt, unsigned char mt, unsigned char hh, unsigned char mm, unsigned char ss)
 {
-  unsigned char buffer[6];
-	
-  buffer[0] = 2;
-  buffer[1] = ss;
-  buffer[2] = mm;
-  buffer[3] = hh;
-  buffer[4] = dt;
-  buffer[5] = mt;
-	
-  i2c_xmit(RTC_ADDR,6,buffer);
+	unsigned char buffer[6];
+
+	buffer[0] = 2;
+	buffer[1] = ss;
+	buffer[2] = mm;
+	buffer[3] = hh;
+	buffer[4] = dt;
+	buffer[5] = mt;
+
+	i2c_xmit(RTC_ADDR,6,buffer);
 }
 
 void rtc_readtime(unsigned char *dt, unsigned char *mt, unsigned char *hh, unsigned char *mm, unsigned char *ss, unsigned char *ms)
 {
-  unsigned char buffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+	unsigned char buffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
 
-  i2c_rcv(RTC_ADDR,1,8,buffer);
+	i2c_rcv(RTC_ADDR,1,8,buffer);
 
-  *ms = buffer[1];
-  *ss = buffer[2];
-  *mm = buffer[3];
-  *hh = buffer[4];
+	*ms = buffer[1];
+	*ss = buffer[2];
+	*mm = buffer[3];
+	*hh = buffer[4];
 	*dt = buffer[5];
 	*mt = buffer[6];
 }
@@ -270,14 +270,14 @@ void init_LCD()
 void Clear_LCD()
 {
 	int index1;
-	  cmd = 0x02;
-		cmd = 0x01;
-	 for(index1=0;index1<470;index1++){}//ca. 2ms warten (mind. 1.57)
+	cmd = 0x02;
+	cmd = 0x01;
+	for(index1=0;index1<470;index1++){}//ca. 2ms warten (mind. 1.57)
 }
 void showChar(char value)
 {
 	int index1;
-  if(value == 0)
+	if(value == 0)
 	{
 		return;
 	}
@@ -288,10 +288,10 @@ void showChar(char value)
 	else
 	{
 		cmd = 0xC0; //->  Adresse auf die zweite Zeile setzen: 1 ( 1 0 0   0 0 0 0) 
-			    //-> DRAM Adresse 0x40!
+				//-> DRAM Adresse 0x40!
 	}
 	for(index1=0;index1<10;index1++);//ca. 50ys warten
-	}
+}
 void showText(char* value)
 {
 	int laenge = stringLength(value); //Textlänge wird bestimmt
